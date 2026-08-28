@@ -655,13 +655,29 @@ off unless asked for.
 Port 7373 was checked against `/etc/services` and the shack's ports
 (2237, 2333–2335, 7550, 7575, 7580, 8300, 8883, 1883, 23000) — no clash.
 
+**Decision, 2026-08-28: cluster login only, and no relay password.**
+
+The direction was questioned — why does KST2Mac not push to the Pi
+instead? Because dxca has no inbound path for spots. It only *publishes*
+to MQTT (never subscribes), its HTTP POST routes are setup/login/refresh
+only, the UDP sources take WSJT-X binary datagrams rather than text, and
+its telnet 7575 is an output for loggers. `[[cluster_nodes]]`, which dxca
+*dials out* to, is the one door. So the supplier has to listen. Pushing
+instead would mean changing dxca, not KST2Mac.
+
+No password on the relay, by explicit instruction: cluster telnet is
+plaintext anyway and this is a shack-internal link. The LAN is the trust
+boundary. Do not add auth here unasked.
+
 ## Open items
 
 **Ready to build**
 
-1. **Wire dxca to the relay** — the node exists and is verified; the
-   remaining step is adding the `[[cluster_nodes]]` entry on the dxca side
-   and confirming spots land in its pipeline. Nothing in KST2Mac blocks it.
+1. **Wire dxca to the relay** — the node is verified from the Mac's LAN
+   address. Remaining: the `[[cluster_nodes]]` entry on the Pi, and
+   `/SET DXCLX` once in a connected pane so ON4KST actually sends spots.
+   Note the Mac's address is DHCP; a reservation or a `.local` name would
+   keep the Pi's config from going stale.
 
 2. **Away toggle** — `/SET HERE` / `/UNSET HERE` (§5.3.4). One command,
    and it is what puts the brackets round a callsign in everyone else's
