@@ -33,24 +33,27 @@ struct ChatPane: View {
 }
 
 private struct LineRow: View {
+    @EnvironmentObject private var model: AppModel
     let line: KSTLine
     let emphasis: AppModel.Emphasis
 
     private var fill: Color {
         switch emphasis {
-        case .mention: return Palette.mentionFill
-        case .watched: return Palette.watchedFill
-        case .own:     return Palette.ownFill
-        case .none:    return .clear
+        case .directed: return Palette.directedFill
+        case .preamble: return Palette.preambleFill
+        case .watched:  return Palette.watchedFill
+        case .own:      return Palette.ownFill
+        case .none:     return .clear
         }
     }
 
     private var bar: Color {
         switch emphasis {
-        case .mention: return Palette.mentionBar
-        case .watched: return Palette.watchedBar
-        case .own:     return Palette.ownBar
-        case .none:    return .clear
+        case .directed: return Palette.directedBar
+        case .preamble: return Palette.preambleBar
+        case .watched:  return Palette.watchedBar
+        case .own:      return Palette.ownBar
+        case .none:     return .clear
         }
     }
 
@@ -69,9 +72,15 @@ private struct LineRow: View {
                     .foregroundStyle(.tertiary)
                     .frame(width: 46, alignment: .leading)
 
-                Text(from)
-                    .font(.system(.body, design: .monospaced).weight(.semibold))
-                    .foregroundStyle(Palette.color(for: from))
+                Button {
+                    model.directedTo = from
+                } label: {
+                    Text(from)
+                        .font(.system(.body, design: .monospaced).weight(.semibold))
+                        .foregroundStyle(Palette.color(for: from))
+                }
+                .buttonStyle(.plain)
+                .help("Address your next message to \(from)")
 
                 if let name {
                     Text(name)
@@ -149,7 +158,8 @@ private struct Composer: View {
         HStack(spacing: 8) {
             if let to = model.directedTo {
                 HStack(spacing: 4) {
-                    Text("/CQ \(to)").font(.caption.monospaced())
+                    Text(model.replyWithPreamble ? to : "/CQ \(to)")
+                        .font(.caption.monospaced())
                     Button {
                         model.directedTo = nil
                     } label: {
@@ -158,8 +168,15 @@ private struct Composer: View {
                     .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 7).padding(.vertical, 3)
-                .background(Color.blue.opacity(0.15))
+                .background(Palette.directedBar.opacity(0.18))
                 .cornerRadius(5)
+                .contextMenu {
+                    Toggle("Reply with preamble instead of /CQ",
+                           isOn: $model.replyWithPreamble)
+                }
+                .help(model.replyWithPreamble
+                      ? "Preamble — highlights only for clients that implement the convention"
+                      : "/CQ — highlights for every chat user")
             }
 
             TextField(model.isInChat ? "Message" : "Not connected",

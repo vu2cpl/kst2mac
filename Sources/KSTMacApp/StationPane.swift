@@ -63,8 +63,10 @@ struct StationPane: View {
             .contextMenu(forSelectionType: Station.ID.self) { ids in
                 if let call = ids.first {
                     Button("Direct message \(call)") { model.directedTo = call }
-                    Button(model.isWatched(call) ? "Stop watching \(call)" : "Watch \(call)") {
-                        model.toggleWatch(call)
+                    if call.uppercased() != model.callsign.uppercased() {
+                        Button(model.isWatched(call) ? "Stop watching \(call)" : "Watch \(call)") {
+                            model.toggleWatch(call)
+                        }
                     }
                 }
             }

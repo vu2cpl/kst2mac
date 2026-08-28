@@ -20,3 +20,25 @@ public enum ServerNotice {
         return Double(line[g])
     }
 }
+
+
+/// The "preamble" convention: a station addresses you by typing your
+/// callsign as the **first word** of an ordinary message, rather than
+/// using `/CQ`.
+///
+/// It is a client-side convention with no server involvement, so it only
+/// shows up as a highlight for people whose client implements it — which
+/// is why `/CQ` remains the right default for outgoing replies.
+public enum Preamble {
+
+    /// Whether `text` opens by addressing `callsign`.
+    public static func addresses(_ callsign: String, in text: String) -> Bool {
+        let me = callsign.uppercased()
+        guard !me.isEmpty, let first = text.split(separator: " ").first else { return false }
+        // Trailing punctuation is common — "VU2CPL:" or "VU2CPL," — but a
+        // callsign's own slash and hyphen must survive.
+        let cleaned = first.uppercased().trimmingCharacters(
+            in: CharacterSet(charactersIn: ":,;.!?()<>"))
+        return cleaned == me
+    }
+}

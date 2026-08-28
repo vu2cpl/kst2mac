@@ -28,21 +28,56 @@ struct KSTMacApp: App {
     }
 }
 
-/// One window: its own model, its own connection, its own room.
+/// A window holding one or two stacked chats, KST2Me style.
+///
+/// Each pane owns its own `AppModel` and therefore its own connection,
+/// room, roster and composer — stacking them is a layout choice, not a
+/// shared session. The second model exists whether or not the pane is
+/// shown; an unconnected `AppModel` costs nothing but a few empty arrays.
+///
+/// Both layouts are available on purpose: stacked panes suit a laptop
+/// screen, while separate windows (File ▸ New chat window) suit a large
+/// display and are handled better by Mission Control and Stage Manager
+/// than a hand-rolled split ever would be.
 struct ChatWindow: View {
-    @StateObject private var model = AppModel()
+    @StateObject private var top = AppModel()
+    @StateObject private var bottom = AppModel()
+    /// Per window, and restored with it.
+    @SceneStorage("showSecondChat") private var showSecond = false
+
+    private var title: String {
+        let rooms = [top, bottom]
+            .prefix(showSecond ? 2 : 1)
+            .filter(\.isInChat)
+            .map(\.room.title)
+        return rooms.isEmpty ? "KST Mac" : rooms.joined(separator: "  ·  ")
+    }
 
     var body: some View {
-        ContentView()
-            .environmentObject(model)
-            .frame(minWidth: 900, minHeight: 520)
-            // The room in the title bar is how you tell two windows apart
-            // in Mission Control and the Window menu.
-            .navigationTitle(model.isInChat ? model.room.title : "KST Mac")
-            .onReceive(NotificationCenter.default.publisher(
-                for: NSApplication.didBecomeActiveNotification)) { _ in
-                Notifier.shared.clearBadge()
+        VSplitView {
+            ContentView()
+                .environmentObject(top)
+                .frame(minHeight: 260)
+            if showSecond {
+                ContentView()
+                    .environmentObject(bottom)
+                    .frame(minHeight: 260)
             }
+        }
+        .frame(minWidth: 900, minHeight: 520)
+        .navigationTitle(title)
+        .toolbar {
+            ToolbarItem {
+                Toggle(isOn: $showSecond) {
+                    Label("Second chat", systemImage: "rectangle.split.1x2")
+                }
+                .help("Show a second chat below, with its own room and roster")
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSApplication.didBecomeActiveNotification)) { _ in
+            Notifier.shared.clearBadge()
+        }
     }
 }
 
@@ -53,7 +88,7 @@ private struct ClearWatchesButton: View {
 
     var body: some View {
         Button("Clear all watches") { model.clearWatches() }
-            .disabled(model.watched.isEmpty)
+            .disabled(model.explicitWatches.isEmpty)
     }
 }
 

@@ -559,3 +559,44 @@ final class EmphasisInputTests: XCTestCase {
                       "text does contain our call — only the sender check saves us")
     }
 }
+
+/// The preamble convention, per the KST2Me manual §3.2.9 / §4.6: a
+/// station addresses you by putting your callsign at the very start of an
+/// ordinary message, with no `/CQ` involved.
+final class PreambleTests: XCTestCase {
+
+    func testCallsignAsFirstWordAddressesUs() {
+        XCTAssertTrue(Preamble.addresses("VU2CPL", in: "VU2CPL tnx qso 73"))
+        XCTAssertTrue(Preamble.addresses("vu2cpl", in: "VU2CPL GM Manoj"))
+    }
+
+    /// Trailing punctuation is common; a callsign's own slash and hyphen
+    /// are not punctuation and must survive.
+    func testTrailingPunctuationIsIgnored() {
+        XCTAssertTrue(Preamble.addresses("VU2CPL", in: "VU2CPL: are you there"))
+        XCTAssertTrue(Preamble.addresses("VU2CPL", in: "VU2CPL, 73"))
+        XCTAssertTrue(Preamble.addresses("F6IFX/P", in: "F6IFX/P running now"))
+        XCTAssertTrue(Preamble.addresses("DN9APW-2", in: "DN9APW-2 hello"))
+    }
+
+    /// Our callsign later in the sentence is someone talking *about* us,
+    /// which the manual handles as a watch, not as a message to us.
+    func testCallsignElsewhereIsNotAPreamble() {
+        XCTAssertFalse(Preamble.addresses("VU2CPL", in: "anyone heard VU2CPL today?"))
+        XCTAssertFalse(Preamble.addresses("VU2CPL", in: "tnx VU2CPL"))
+    }
+
+    func testOtherStationsPreambleIsNotOurs() {
+        XCTAssertFalse(Preamble.addresses("VU2CPL", in: "SM5DWF tnx qso"))
+    }
+
+    func testEmptyInputs() {
+        XCTAssertFalse(Preamble.addresses("", in: "VU2CPL hello"))
+        XCTAssertFalse(Preamble.addresses("VU2CPL", in: ""))
+    }
+
+    /// A prefix match must not count — VU2CPLX is a different station.
+    func testLongerCallsignIsNotAMatch() {
+        XCTAssertFalse(Preamble.addresses("VU2CPL", in: "VU2CPLX hello"))
+    }
+}

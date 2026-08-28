@@ -66,8 +66,13 @@ final class AppModel: ObservableObject {
     /// operator presses Return — the chat has no draft state, so an
     /// accidental send is visible to the whole room.
     @Published var draft: String = ""
-    /// When set, the next send goes out as `/CQ <call> …`.
+    /// When set, the next send is addressed to this callsign.
     @Published var directedTo: String?
+
+    /// How to address a reply. `/CQ` is the default because it highlights
+    /// for every chat user whatever client they run; a preamble only
+    /// highlights for clients that implement the convention.
+    @AppStorage("replyWithPreamble") var replyWithPreamble: Bool = false
 
     /// Cap the scrollback so a long session doesn't grow without bound.
     private let maxLines = 5000
@@ -160,7 +165,11 @@ final class AppModel: ObservableObject {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let connection else { return }
         if let to = directedTo, !to.isEmpty, !text.hasPrefix("/") {
-            connection.sendDirected(to: to, text: text)
+            if replyWithPreamble {
+                connection.send("\(to.uppercased()) \(text)")
+            } else {
+                connection.sendDirected(to: to, text: text)
+            }
         } else {
             connection.send(text)
         }
@@ -233,9 +242,15 @@ final class AppModel: ObservableObject {
     }
 
     private func append(_ line: KSTLine) {
-        if mentionsMe(line), case .message(let from, let name, let to, let text) = line.kind {
-            Notifier.shared.mention(from: from, name: name, text: text,
-                                    room: room.title, directed: to == callsign.uppercased())
+        switch emphasis(for: line) {
+        case .directed, .preamble:
+            if case .message(let from, let name, _, let text) = line.kind {
+                Notifier.shared.mention(from: from, name: name, text: text,
+                                        room: room.title,
+                                        directed: emphasis(for: line) == .directed)
+            }
+        default:
+            break
         }
         lines.append(line)
         if lines.count > maxLines {
@@ -266,19 +281,47 @@ final class AppModel: ObservableObject {
 
     // MARK: - Emphasis
 
-    /// How a line should be picked out of the log. Modelled on KST2Me,
-    /// which colours to-me, from-me and watched traffic differently —
-    /// the three things you scan a busy chat for.
+    /// How a line should be picked out of the log.
+    ///
+    /// The tiers and their precedence come straight from the KST2Me
+    /// manual (§4.6), which is the convention ON4KST regulars already
+    /// have in their eyes:
+    ///
+    /// 1. **`/CQ`** — a real server-side directed message. Works for
+    ///    every chat user, whatever client they run.
+    /// 2. **Preamble** — the partner's callsign typed as the first word
+    ///    of an ordinary message. A *client-side convention*, not a
+    ///    protocol feature: it only highlights for people running a
+    ///    client that implements it. That is why `/CQ` stays the default
+    ///    for outgoing replies here.
+    /// 3. **Watch** — a string you asked to be told about.
+    /// 4. **Own** — something we sent. Not a KST2Me tier; added because
+    ///    a sent message that looks like everyone else's gives you no
+    ///    confirmation it went out.
     enum Emphasis {
-        case mention   // addressed to us, or naming us
-        case watched   // a callsign we are waiting on
-        case own       // something we sent
+        case directed
+        case preamble
+        case watched
+        case own
         case none
     }
 
     var watched: Set<String> {
-        Set(watchedRaw.split(separator: ",").map { String($0).uppercased() })
-            .subtracting([""])
+        var set = Set(watchedRaw.split(separator: ",").map { String($0).uppercased() })
+        set.remove("")
+        // Our own callsign is an implicit watch. The manual suggests
+        // exactly this (§3.4: watch your own call "in case no /CQ or
+        // preamble are received"), and it means a mention that is
+        // neither a /CQ nor a preamble still gets noticed — at watch
+        // level, which is the right weight for it.
+        if !callsign.isEmpty { set.insert(callsign.uppercased()) }
+        return set
+    }
+
+    /// Watches the operator set, without the implicit own-callsign one —
+    /// what the UI should show and let them clear.
+    var explicitWatches: Set<String> {
+        watched.subtracting([callsign.uppercased()])
     }
 
     func isWatched(_ callsign: String) -> Bool {
@@ -298,15 +341,26 @@ final class AppModel: ObservableObject {
         objectWillChange.send()
     }
 
-    /// Mention wins over watch, and watch over our own traffic: a line
-    /// addressed to you matters more than one merely from a station you
-    /// are following.
     func emphasis(for line: KSTLine) -> Emphasis {
-        guard case .message(let from, _, _, _) = line.kind else { return .none }
-        if mentionsMe(line) { return .mention }
-        if isWatched(from) { return .watched }
-        if !callsign.isEmpty, from == callsign.uppercased() { return .own }
+        guard case .message(let from, _, let to, let text) = line.kind else { return .none }
+        let me = callsign.uppercased()
+
+        if !me.isEmpty, from == me { return .own }
+        if !me.isEmpty, to == me { return .directed }
+        if Preamble.addresses(me, in: text) { return .preamble }
+        if isWatched(from) || matchesWatch(text) { return .watched }
         return .none
+    }
+
+
+
+    /// Watches match anywhere in the message text, as well as by
+    /// callsign. KST2Me offers a scope per watch (message / user list /
+    /// spots); this is the "included in the chat message" case, which is
+    /// the one its own manual gives as the worked example.
+    private func matchesWatch(_ text: String) -> Bool {
+        let haystack = text.uppercased()
+        return watched.contains { !$0.isEmpty && haystack.contains($0) }
     }
 
     /// True if the line is addressed to, or mentions, our own callsign.

@@ -332,6 +332,46 @@ KST2Me uses saturated fills for these. On a modern display a quiet wash
 plus a solid edge bar reads as clearly and keeps the text legible, which a
 magenta background does not.
 
+**2026-08-28, fourteenth pass — the KST2Me manual.** Reading OZ2M's
+manual (55 pages) settled several things guesswork had got wrong, and
+explains the colours in the reference screenshot.
+
+**Two reply mechanisms, not one.** Besides `/CQ` there is the
+**preamble**: the partner's callsign typed as the first word of an
+ordinary message. It is a *client-side convention with no server
+involvement* — §4.7 says plainly it "works for other KST2Me users",
+whereas `/CQ` "works for all chat users". I had been about to treat
+preamble as a way to dodge the one-command-per-minute limit; it is not,
+because a non-participating client would show it as plain text. `/CQ`
+stays the outgoing default, with preamble available behind a toggle on
+the reply chip.
+
+**Highlight tiers and precedence** now follow the manual (§4.6): `/CQ`
+orange (1), preamble pink (2), watch green (3). Those hues are kept
+deliberately — ON4KST regulars already read them that way, and recolouring
+a familiar convention only makes an unfamiliar client harder to use. The
+rendering still differs: quiet wash plus edge bar rather than KST2Me's
+saturated row fills, which stay legible on a modern display. `own` is a
+fourth tier of our own, since a sent message that looks like everyone
+else's gives no confirmation it went out.
+
+**Own callsign is now an implicit watch.** §3.4 recommends exactly this —
+watch your own call "in case no /CQ or preamble are received". That
+demotes the old loose behaviour (callsign anywhere in the text counted as
+a mention) to watch level, which is the right weight, and it comes from
+the reference rather than from me.
+
+**Watches match message text, not just callsigns.** KST2Me gives each
+watch a scope (message / user list / spots / frequency); this implements
+the "included in the chat message" case, its own worked example.
+
+`Preamble.addresses(_:in:)` lives in KSTCore so it is testable — it has to
+reject a prefix match (`VU2CPLX`) and survive callsign punctuation (`/P`,
+`-2`) while ignoring trailing `:` and `,`.
+
+Also: clicking a callsign in the log addresses your next message to them,
+as KST2Me does.
+
 ## Open items
 
 1. **Is the command rate limit per connection or per callsign?** With
@@ -341,7 +381,17 @@ magenta background does not.
    roster every five minutes independently.
 2. **Join/leave notices** — shape unknown, so the table only updates on
    the 60s roster poll. Needs a longer capture.
-3. **`/SHow DX` spot format**, if spots are ever surfaced. They arrive
+3. **`/SHow DX` spot format** — now wanted, to bridge spots into dxca.
+   dxca ingests via `[[cluster_nodes]]` (host/port/login_call), so the
+   clean shape is for KST Mac to *serve* a small DX-cluster telnet node
+   that dxca dials, rather than inventing a private channel. Spots arrive
+   disabled (`DX OFF`), so a capture with `/SET DX` — and especially
+   `/SET DXCLX`, which the help says gives "CLX format" and may already be
+   standard `DX de` cluster lines — is the next step.
+4. **Worth stealing from the manual, not yet built:** per-event sounds
+   (§3.5); watch scopes beyond message text (§3.4); QRB highlight
+   thresholds (§3.10.3); "away" toggle via `/UNSET HERE` (§5.3.4);
+   spot-squares filter (§3.6.4). They arrive
    disabled (`DX OFF, ANN OFF, WWC OFF` from `/SHow CONFig`), which is
    why no capture has contained one.
 4. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs

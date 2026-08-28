@@ -26,12 +26,46 @@ struct ContentView: View {
         .background(.bar)
     }
 
+    private var header: some View {
+        HStack(spacing: 8) {
+            Picker("", selection: Binding(
+                get: { model.room },
+                set: { model.room = $0 })
+            ) {
+                ForEach(ChatRoom.allCases) { room in
+                    Text(room.title).tag(room)
+                }
+            }
+            .labelsHidden()
+            .disabled(model.isConnected && !model.isInChat)
+            .frame(width: 210)
+            .help("Switches room in place while connected (/CHAT)")
+
+            Spacer()
+
+            Button(model.isConnected ? "Disconnect" : "Connect") {
+                if model.isConnected {
+                    model.disconnect()
+                } else if let saved = model.storedPassword() {
+                    model.connect(password: saved)
+                } else {
+                    showLogin = true
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.bar)
+    }
+
     var body: some View {
         // Deliberately a VStack rather than `.safeAreaInset(edge: .bottom)`:
         // HSplitView does not pass a bottom safe-area inset down to its
         // children, so the status bar drew *over* the composer and hid the
         // message field and its buttons entirely.
         VStack(spacing: 0) {
+            header
+            Divider()
             HSplitView {
                 ChatPane()
                 StationPane()
@@ -41,32 +75,6 @@ struct ContentView: View {
 
             Divider()
             statusBar
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Picker("Chat", selection: Binding(
-                    get: { model.room },
-                    set: { model.room = $0 })
-                ) {
-                    ForEach(ChatRoom.allCases) { room in
-                        Text(room.title).tag(room)
-                    }
-                }
-                .disabled(model.isConnected && !model.isInChat)
-                .frame(width: 210)
-                .help("Switches room in place while connected (/CHAT)")
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button(model.isConnected ? "Disconnect" : "Connect") {
-                    if model.isConnected {
-                        model.disconnect()
-                    } else if let saved = model.storedPassword() {
-                        model.connect(password: saved)
-                    } else {
-                        showLogin = true
-                    }
-                }
-            }
         }
         .sheet(isPresented: $showLogin) {
             LoginSheet()

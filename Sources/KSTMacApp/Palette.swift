@@ -55,15 +55,23 @@ enum Palette {
         }
     }
 
-    /// Row emphasis. KST2Me uses saturated fills for these; on a modern
-    /// display a quiet wash plus a solid edge bar reads as clearly and
-    /// keeps the text legible, which saturated backgrounds do not.
-    static let mentionFill = Color.accentColor.opacity(0.16)
-    static let mentionBar  = Color.accentColor
+    /// Row emphasis. The hues follow KST2Me — orange for `/CQ`, pink for
+    /// a preamble, green for a watch — because ON4KST regulars already
+    /// read those colours that way, and an unfamiliar client that
+    /// recolours a familiar convention is just harder to use.
+    ///
+    /// The rendering differs: KST2Me fills the whole row in saturated
+    /// colour. A quiet wash plus a solid edge bar reads as clearly on a
+    /// modern display and keeps the message text legible.
+    static let directedFill = Color(red: 0.95, green: 0.60, blue: 0.25).opacity(0.18)
+    static let directedBar  = Color(red: 0.97, green: 0.62, blue: 0.28)
 
-    static let watchedFill = Color(red: 0.35, green: 0.75, blue: 0.45).opacity(0.13)
-    static let watchedBar  = Color(red: 0.35, green: 0.78, blue: 0.48)
+    static let preambleFill = Color(red: 0.93, green: 0.45, blue: 0.75).opacity(0.16)
+    static let preambleBar  = Color(red: 0.94, green: 0.50, blue: 0.78)
 
-    static let ownFill     = Color(red: 0.55, green: 0.60, blue: 0.75).opacity(0.11)
-    static let ownBar      = Color(red: 0.58, green: 0.64, blue: 0.80)
+    static let watchedFill  = Color(red: 0.35, green: 0.75, blue: 0.45).opacity(0.14)
+    static let watchedBar   = Color(red: 0.35, green: 0.78, blue: 0.48)
+
+    static let ownFill      = Color(red: 0.55, green: 0.60, blue: 0.75).opacity(0.11)
+    static let ownBar       = Color(red: 0.58, green: 0.64, blue: 0.80)
 }
