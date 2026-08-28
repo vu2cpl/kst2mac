@@ -30,7 +30,8 @@ table with distance and beam heading from your own square.
 | Scrollback backfill on join | done — `/SHOW MSG` |
 | Live room switching | done — `/CHAT`, no reconnect |
 | Mention notifications | done — banner when not frontmost, plus Dock badge |
-| Multiple windows | done — one connection and room per window, concurrent logins verified |
+| Multiple windows | done — concurrent logins verified |
+| Stacked / floating panes | done — add, close, or tear a pane into its own window with its connection intact |
 | Watched callsigns | done — right-click a station to watch; their traffic is tinted |
 | Highlight tiers | done — /CQ, preamble, watch, own; hues and precedence per the KST2Me manual |
 | Preamble convention | done — incoming highlight, and optional for outgoing replies |
@@ -127,6 +128,14 @@ See [docs/PROTOCOL.md](docs/PROTOCOL.md) for the full captured command set.
 It prompts for the password with echo off and never writes it to the file.
 Transcripts are git-ignored — they contain whatever the room said while you
 were recording, and the login banner echoes your public IP.
+
+## Windows and panes
+
+**+** in the toolbar adds a chat pane below, with its own room, roster and
+connection. Each pane can be closed, or floated into its own window with
+the window button in its header — floating keeps the connection, so you do
+not re-login or lose the scrollback. **File ▸ New chat window** opens an
+empty one.
 
 ## Multiple windows
 

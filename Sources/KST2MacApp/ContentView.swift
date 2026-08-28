@@ -2,6 +2,12 @@ import SwiftUI
 import KSTCore
 
 struct ContentView: View {
+    /// Set when this pane can be torn out into its own window.
+    var onFloat: (() -> Void)?
+    /// Set when this pane can be closed — nil for the last pane in a
+    /// window, which is closed by closing the window.
+    var onClose: (() -> Void)?
+
     @EnvironmentObject private var model: AppModel
     @State private var showLogin = false
 
@@ -42,6 +48,21 @@ struct ContentView: View {
             .help("Switches room in place while connected (/CHAT)")
 
             Spacer()
+
+            if let onFloat {
+                Button(action: onFloat) {
+                    Image(systemName: "macwindow.badge.plus")
+                }
+                .buttonStyle(.borderless)
+                .help("Move this chat into its own window, keeping the connection")
+            }
+            if let onClose {
+                Button(action: onClose) {
+                    Image(systemName: "xmark.circle")
+                }
+                .buttonStyle(.borderless)
+                .help("Close this chat and disconnect it")
+            }
 
             Button(model.isConnected ? "Disconnect" : "Connect") {
                 if model.isConnected {

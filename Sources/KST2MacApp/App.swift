@@ -10,13 +10,13 @@ struct KST2MacApp: App {
     }
 
     var body: some Scene {
-        // A plain WindowGroup, so File ▸ New chat window opens another
-        // one. Each carries its own AppModel and therefore its own
-        // connection — that is the whole point: one window per room.
-        WindowGroup(id: "chat") {
-            ChatWindow()
+        // The window's value is a comma-separated list of session ids, so
+        // a window can be opened around sessions that already exist —
+        // which is how a floated pane keeps its live connection.
+        WindowGroup(id: "chat", for: String.self) { $ids in
+            ChatWindow(seed: ids ?? "")
         }
-        .defaultSize(width: 1100, height: 700)
+        .defaultSize(width: 1200, height: 780)
         .commands {
             CommandGroup(replacing: .newItem) {
                 NewWindowButton()
@@ -33,71 +33,97 @@ struct KST2MacApp: App {
     }
 }
 
-/// A window holding one or two stacked chats, KST2Me style.
+/// A window showing one or more stacked chat panes.
 ///
-/// Each pane owns its own `AppModel` and therefore its own connection,
-/// room, roster and composer — stacking them is a layout choice, not a
-/// shared session. The second model exists whether or not the pane is
-/// shown; an unconnected `AppModel` costs nothing but a few empty arrays.
-///
-/// Both layouts are available on purpose: stacked panes suit a laptop
-/// screen, while separate windows (File ▸ New chat window) suit a large
-/// display and are handled better by Mission Control and Stage Manager
-/// than a hand-rolled split ever would be.
+/// Panes can be added, closed, or floated out into their own window. The
+/// sessions themselves belong to `SessionStore`, so any of that can happen
+/// without disturbing a connection.
 struct ChatWindow: View {
-    @StateObject private var top = AppModel()
-    @StateObject private var bottom = AppModel()
-    /// Per window, and restored with it.
-    @SceneStorage("showSecondChat") private var showSecond = false
+    let seed: String
 
-    /// Who we are and where we are. The app name stays in the title so
-    /// the window is identifiable in Mission Control and the Window menu;
-    /// callsign and rooms go in the subtitle, which is where macOS puts
-    /// the changing detail.
+    @StateObject private var store = SessionStore.shared
+    @State private var paneIDs: [UUID] = []
+    /// Survives a window restore, so reopening finds the same panes.
+    @SceneStorage("paneIDs") private var storedIDs: String = ""
+
+    @Environment(\.openWindow) private var openWindow
+    @AppStorage("callsign") private var callsign: String = ""
+
+    private var models: [AppModel] { paneIDs.map { store.model(for: $0) } }
+
     private var subtitle: String {
-        let panes = [top, bottom].prefix(showSecond ? 2 : 1)
-        let rooms = panes.filter(\.isInChat).map(\.room.title)
-        let call = panes.first?.callsign.uppercased() ?? ""
-
+        let rooms = models.filter(\.isInChat).map(\.room.title)
         var parts: [String] = []
-        if !call.isEmpty { parts.append(call) }
+        if !callsign.isEmpty { parts.append(callsign.uppercased()) }
         parts.append(rooms.isEmpty ? "not connected" : rooms.joined(separator: " + "))
         return parts.joined(separator: "  ·  ")
     }
 
     var body: some View {
         VSplitView {
-            ContentView()
-                .environmentObject(top)
-                // maxHeight lets VSplitView share the space instead of
-                // giving the first pane its ideal size and squeezing the
-                // second below its minimum, where it gets clipped and
-                // loses its Connect button.
-                .frame(minHeight: 240, maxHeight: .infinity)
-            if showSecond {
-                ContentView()
-                    .environmentObject(bottom)
-                    .frame(minHeight: 240, maxHeight: .infinity)
+            ForEach(paneIDs, id: \.self) { id in
+                pane(id)
             }
         }
-        // Two panes need room for two of everything — header, composer
-        // and status bar each — so the window grows when the second is
-        // switched on rather than cramming both into a one-pane height.
-        .frame(minWidth: 900, minHeight: showSecond ? 780 : 520)
+        .frame(minWidth: 900, minHeight: paneIDs.count > 1 ? 780 : 520)
         .navigationTitle("KST2Mac")
         .navigationSubtitle(subtitle)
         .toolbar {
             ToolbarItem {
-                Toggle(isOn: $showSecond) {
-                    Label("Second chat", systemImage: "rectangle.split.1x2")
+                Button {
+                    paneIDs.append(store.newSession())
+                } label: {
+                    Label("Add chat pane", systemImage: "plus.rectangle")
                 }
-                .help("Show a second chat below, with its own room and roster")
+                .help("Add another chat below, with its own room and connection")
             }
+        }
+        .onAppear(perform: restore)
+        .onChange(of: paneIDs) { _ in
+            storedIDs = paneIDs.map(\.uuidString).joined(separator: ",")
         }
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification)) { _ in
             Notifier.shared.clearBadge()
         }
+    }
+
+    /// Extracted from the `VSplitView` body: inline, the optional
+    /// closures plus the modifier chain defeated the type checker.
+    @ViewBuilder
+    private func pane(_ id: UUID) -> some View {
+        let multiple = paneIDs.count > 1
+        ContentView(
+            onFloat: multiple ? { float(id) } : nil,
+            onClose: multiple ? { close(id) } : nil
+        )
+        .environmentObject(store.model(for: id))
+        // maxHeight lets VSplitView share the height between panes rather
+        // than giving the first its ideal size and squeezing the rest
+        // below their minimum, where they get clipped.
+        .frame(minHeight: 240, maxHeight: .infinity)
+    }
+
+    private func restore() {
+        guard paneIDs.isEmpty else { return }
+        // A window opened around existing sessions (a floated pane) takes
+        // its ids from the scene value; a restored window takes them from
+        // scene storage; a genuinely new window gets a fresh session.
+        let source = seed.isEmpty ? storedIDs : seed
+        let ids = source.split(separator: ",").compactMap { UUID(uuidString: String($0)) }
+        paneIDs = ids.isEmpty ? [store.newSession()] : ids
+    }
+
+    /// Move a pane into a window of its own. The session stays in the
+    /// store, so the connection, scrollback and roster all survive.
+    private func float(_ id: UUID) {
+        paneIDs.removeAll { $0 == id }
+        openWindow(id: "chat", value: id.uuidString)
+    }
+
+    private func close(_ id: UUID) {
+        paneIDs.removeAll { $0 == id }
+        store.discard(id)
     }
 }
 
@@ -116,7 +142,7 @@ private struct NewWindowButton: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Button("New chat window") { openWindow(id: "chat") }
+        Button("New chat window") { openWindow(id: "chat", value: "") }
             .keyboardShortcut("n", modifiers: .command)
     }
 }
