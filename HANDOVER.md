@@ -541,32 +541,48 @@ three.
 
 ## Open items
 
-1. **Is the command rate limit per connection or per callsign?** With
-   several windows open this decides whether they contend for one budget.
-   Symptom if shared: "Please wait N second(s)" appearing far more often
-   with three windows than with one. Each window currently polls the
-   roster every five minutes independently.
-2. **Join/leave notices** — shape unknown, so the table only updates on
-   the 60s roster poll. Needs a longer capture.
-3. **`/SHow DX` spot format** — now wanted, to bridge spots into dxca.
-   dxca ingests via `[[cluster_nodes]]` (host/port/login_call), so the
-   clean shape is for KST2Mac to *serve* a small DX-cluster telnet node
-   that dxca dials, rather than inventing a private channel. Spots arrive
-   disabled (`DX OFF`), so a capture with `/SET DX` — and especially
-   `/SET DXCLX`, which the help says gives "CLX format" and may already be
-   standard `DX de` cluster lines — is the next step.
-4. **Worth stealing from the manual, not yet built:** per-event sounds
-   (§3.5); watch scopes beyond message text (§3.4); QRB highlight
-   thresholds (§3.10.3); "away" toggle via `/UNSET HERE` (§5.3.4);
-   spot-squares filter (§3.6.4). They arrive
-   disabled (`DX OFF, ANN OFF, WWC OFF` from `/SHow CONFig`), which is
-   why no capture has contained one.
-4. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs
-   it automatically if present.
-5. Not yet decided: notarisation (`notarize.sh`, as in the sibling Mac
-   apps) if this is ever distributed beyond the shack.
-6. Not planned for v0.1: map view, DXClusterAggregator spot integration.
-   Both were explicitly deferred when the scope was set.
+**Blocked on one capture**
+
+1. **`/SHow DX` spot format.** Spots arrive disabled (`DX OFF, ANN OFF,
+   WWC OFF` per `/SHow CONFig`), so no transcript has ever contained one.
+   Chat ▸ Record spot-format transcript runs the probe on a live session
+   and writes to `~/Desktop/kst2mac-spot-probe.txt`; `KSTCapture --probe`
+   does the same from a terminal. Everything below in this group waits on
+   it.
+2. **Bridge spots into dxca.** dxca ingests via `[[cluster_nodes]]`
+   (host / port / login_call), so the clean shape is for KST2Mac to
+   *serve* a small DX-cluster telnet node that dxca dials, rather than
+   inventing a private channel. If `/SET DXCLX` ("CLX format") already
+   emits standard `DX de …` lines this is a relay, not a re-encoding.
+
+**Ready to build**
+
+3. **Per-event sounds** (KST2Me manual §3.5) — a sound for `/CQ`, for a
+   preamble, for a watch. The obvious next thing for an app left running
+   during a lift; notifications only fire when it is not frontmost.
+4. **Away toggle** — `/SET HERE` / `/UNSET HERE` (§5.3.4). One command,
+   and it is what puts the brackets round a callsign in everyone else's
+   roster.
+5. **Watch scopes** (§3.4) — watches currently match message text and
+   callsigns; KST2Me also scopes them to the user list, spot calls,
+   frequency, and locator.
+6. **QRB highlight thresholds** (§3.10.3) — highlight stations beyond a
+   set distance, rather than only shading by distance.
+
+**Needs observation**
+
+7. **Join/leave notices** — shape unknown, so the table only updates on
+   the five-minute roster poll.
+8. **Is the command rate limit per connection or per callsign?** Symptom
+   if shared: wait notices appearing far more often with three panes than
+   with one. Each pane polls the roster independently.
+
+**Deferred**
+
+9. **Notarisation** (`notarize.sh`, as in the sibling Mac apps) — only
+   needed if this is ever distributed beyond the shack. Ad-hoc signing is
+   fine locally.
+10. **Map view** — explicitly out of scope at v0.1 and still is.
 
 ## Gotchas
 
