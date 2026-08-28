@@ -90,11 +90,26 @@ struct StationPane: View {
 
             Divider()
             HStack {
-                Text(model.stationsAreStale
-                     ? "previous room — asking…"
-                     : "\(model.stations.filter { !$0.isAway }.count) here, \(model.stations.count) listed")
-                    .font(Typography.text(11, scale))
-                    .foregroundStyle(model.stationsAreStale ? .orange : .secondary)
+                if model.stationsAreStale {
+                    Text("previous room — asking…")
+                        .font(Typography.text(11, scale))
+                        .foregroundStyle(Palette.connecting)
+                } else {
+                    HStack(spacing: 3) {
+                        Text("\(model.stations.filter { !$0.isAway }.count)")
+                            .font(Typography.text(11, scale, weight: .semibold))
+                            .foregroundStyle(Palette.connected)
+                        Text("here,")
+                            .font(Typography.text(11, scale))
+                            .foregroundStyle(.secondary)
+                        Text("\(model.stations.count)")
+                            .font(Typography.text(11, scale, weight: .semibold))
+                            .foregroundStyle(Palette.utc)
+                        Text("listed")
+                            .font(Typography.text(11, scale))
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Button {
                     model.refreshRoster()
                 } label: {

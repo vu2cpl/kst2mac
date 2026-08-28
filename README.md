@@ -148,6 +148,19 @@ The server allows several simultaneous logins on one callsign — three
 windows in three rooms have been run with no session dropped — so no SSID
 suffix is needed.
 
+## Capturing the spot format
+
+Chat ▸ **Record spot-format transcript** runs `/SET DXCLX`, `/SHOW DX 10`,
+`/SET DX`, `/SHOW DX 10` on the connected session — a minute apart, since
+the server allows about one command a minute — and writes the raw replies
+to `~/Desktop/kst2mac-spot-probe.txt`. Chat ▸ **Finish spot transcript**
+closes the file after about four minutes.
+
+Those two `/SET` commands change your own spot preferences on the server;
+`/UNSET DX` puts them back. The transcript contains whatever the room said
+while recording, and the login banner carries your public IP, so read it
+before sharing.
+
 ## Text size
 
 View ▸ Bigger text / Smaller text / Actual size (⌘+, ⌘-, ⌘0) scales every

@@ -27,6 +27,8 @@ struct KST2MacApp: App {
             CommandMenu("Chat") {
                 AddPaneButton()
                 Divider()
+                SpotProbeButtons()
+                Divider()
                 ClearWatchesButton()
             }
         }
@@ -53,16 +55,9 @@ struct ChatWindow: View {
 
     @Environment(\.openWindow) private var openWindow
     @AppStorage("callsign") private var callsign: String = ""
+    @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
 
     private var models: [AppModel] { paneIDs.map { store.model(for: $0) } }
-
-    private var subtitle: String {
-        let rooms = models.filter(\.isInChat).map(\.room.title)
-        var parts: [String] = []
-        if !callsign.isEmpty { parts.append(callsign.uppercased()) }
-        parts.append(rooms.isEmpty ? "not connected" : rooms.joined(separator: " + "))
-        return parts.joined(separator: "  ·  ")
-    }
 
     var body: some View {
         VSplitView {
@@ -71,9 +66,17 @@ struct ChatWindow: View {
             }
         }
         .frame(minWidth: 900, minHeight: paneIDs.count > 1 ? 780 : 520)
+        // The system title is hidden and redrawn below, because AppKit's
+        // title text takes no font, colour or size from us. navigationTitle
+        // is still set so the Window menu and Mission Control have a name.
+        .background(WindowAccessor { window in
+            window.titleVisibility = .hidden
+        })
         .navigationTitle("KST2Mac")
-        .navigationSubtitle(subtitle)
         .toolbar {
+            ToolbarItem(placement: .navigation) {
+                brand
+            }
             ToolbarItem {
                 Button {
                     addPane()
@@ -84,6 +87,7 @@ struct ChatWindow: View {
             }
         }
         .focusedSceneValue(\.addPane, addPane)
+        .focusedSceneValue(\.probeTarget, models.first(where: \.isInChat))
         .onAppear(perform: restore)
         .onChange(of: paneIDs) { _ in
             storedIDs = paneIDs.map(\.uuidString).joined(separator: ",")
@@ -108,6 +112,41 @@ struct ChatWindow: View {
         // than giving the first its ideal size and squeezing the rest
         // below their minimum, where they get clipped.
         .frame(minHeight: 240, maxHeight: .infinity)
+    }
+
+    /// The app's own title bar content: name, callsign, rooms — sized and
+    /// coloured, unlike the system one.
+    private var brand: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .font(Typography.text(15, scale, weight: .semibold))
+                .foregroundStyle(Palette.utc)
+
+            Text("KST2Mac")
+                .font(Typography.text(16, scale, weight: .semibold))
+                .foregroundStyle(Palette.utc)
+
+            if !callsign.isEmpty {
+                Text(callsign.uppercased())
+                    .font(Typography.mono(15, scale, weight: .semibold))
+                    .foregroundStyle(Palette.callsignTint)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Palette.callsignTint.opacity(0.16), in: Capsule())
+            }
+
+            Text(rooms)
+                .font(Typography.text(13, scale))
+                .foregroundStyle(anyConnected ? Palette.connected : Palette.offline)
+                .lineLimit(1)
+        }
+    }
+
+    private var anyConnected: Bool { models.contains(where: \.isInChat) }
+
+    private var rooms: String {
+        let names = models.filter(\.isInChat).map(\.room.title)
+        return names.isEmpty ? "not connected" : names.joined(separator: "  +  ")
     }
 
     private func addPane() {
@@ -158,6 +197,27 @@ extension FocusedValues {
     var addPane: (() -> Void)? {
         get { self[AddPaneKey.self] }
         set { self[AddPaneKey.self] = newValue }
+    }
+}
+
+/// Protocol capture from a live session — see `AppModel.probeSpotFormat`.
+struct ProbeKey: FocusedValueKey { typealias Value = AppModel }
+
+extension FocusedValues {
+    var probeTarget: AppModel? {
+        get { self[ProbeKey.self] }
+        set { self[ProbeKey.self] = newValue }
+    }
+}
+
+private struct SpotProbeButtons: View {
+    @FocusedValue(\.probeTarget) private var target
+
+    var body: some View {
+        Button("Record spot-format transcript") { target?.probeSpotFormat() }
+            .disabled(target?.isInChat != true)
+        Button("Finish spot transcript") { target?.endProbe() }
+            .disabled(target?.transcriptURL == nil)
     }
 }
 

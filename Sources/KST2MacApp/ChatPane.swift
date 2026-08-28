@@ -195,10 +195,13 @@ private struct Composer: View {
             } label: {
                 Image(systemName: "clock.arrow.circlepath")
             }
+            .tint(Palette.utc)
             .disabled(!model.isInChat)
             .help("Fetch recent messages (/SHOW MSG). Uses one of the server's ~1-per-minute command slots.")
 
             Button("Send") { model.sendDraft() }
+                .buttonStyle(.borderedProminent)
+                .tint(model.directedTo == nil ? Palette.utc : Palette.directedBar)
                 .disabled(!model.isInChat || model.draft.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         .padding(8)

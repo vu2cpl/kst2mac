@@ -177,6 +177,41 @@ public final class KSTConnection: @unchecked Sendable {
         }
     }
 
+    /// Run the spot-format probe on this live session.
+    ///
+    /// Exists because the standalone `KSTCapture` tool has to ask for the
+    /// password on a terminal, while a connected app already holds an
+    /// authenticated session — so the operator never has to type a
+    /// password to collect a transcript.
+    ///
+    /// The commands are spaced a minute apart because the server allows
+    /// about one a minute; anything faster just collects wait notices.
+    /// They reply privately and post nothing to the room, but `/SET DX`
+    /// and `/SET DXCLX` do change the operator's own spot preferences —
+    /// `/UNSET DX` puts them back.
+    public func probeSpotFormat() {
+        let commands = ["/SET DXCLX", "/SHOW DX 10", "/SET DX", "/SHOW DX 10"]
+        queue.async {
+            guard self.phase == .inChat else {
+                self.emit(.line(.local("Spot probe needs a connected chat.")))
+                return
+            }
+            self.emit(.line(.local("Spot probe: \(commands.count) commands, about a minute apart.")))
+            for (index, command) in commands.enumerated() {
+                self.queue.asyncAfter(deadline: .now() + Double(index) * 62) { [weak self] in
+                    guard let self, self.phase == .inChat else { return }
+                    self.emit(.line(.local("Spot probe → \(command)")))
+                    self.write(command)
+                }
+            }
+        }
+    }
+
+    /// Mirror of every decoded chunk, for transcript capture.
+    public func setRawMonitor(_ monitor: (@Sendable (String) -> Void)?) {
+        queue.async { self.rawMonitor = monitor }
+    }
+
     /// Ask the server who is present. The reply arrives as `.line`s of
     /// kind `.roster` and is closed by a `.rosterComplete` event.
     /// - Parameter userInitiated: `true` when the operator asked for it

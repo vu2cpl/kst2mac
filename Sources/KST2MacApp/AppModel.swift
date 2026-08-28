@@ -122,6 +122,43 @@ final class AppModel: ObservableObject {
         connection?.requestRoster(userInitiated: true)
     }
 
+    /// Where the raw transcript goes while a probe is running.
+    @Published private(set) var transcriptURL: URL?
+    private var transcript: TranscriptWriter?
+
+    /// Run the spot-format probe and write every byte the server sends to
+    /// a file on the Desktop, so the exact format can be read rather than
+    /// squinted at in the chat log.
+    func probeSpotFormat() {
+        guard let connection, isInChat else { return }
+
+        let url = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("kst2mac-spot-probe.txt")
+        guard let writer = TranscriptWriter(url: url) else {
+            append(.local("Could not open \(url.lastPathComponent) for writing."))
+            return
+        }
+
+        transcript = writer
+        transcriptURL = url
+        // The monitor is called on the connection's queue, so the writer
+        // owns its own lock rather than touching this main-actor model.
+        connection.setRawMonitor { [weak writer] chunk in writer?.write(chunk) }
+        connection.probeSpotFormat()
+        append(.local("Recording to \(url.path) — about four minutes."))
+    }
+
+    /// Stop recording and close the file. Stopping early truncates it.
+    func endProbe() {
+        connection?.setRawMonitor(nil)
+        transcript?.close()
+        transcript = nil
+        if let url = transcriptURL {
+            append(.local("Spot probe written to \(url.path)"))
+        }
+        transcriptURL = nil
+    }
+
     /// Fetch recent messages. A deliberate action, because it costs one of
     /// the operator's roughly-one-per-minute command slots.
     func loadBacklog() {

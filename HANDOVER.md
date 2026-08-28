@@ -486,6 +486,30 @@ owned by the previous app identity, so macOS prompts once on first use
 ("KST2Mac wants to use your confidential information…"). Always Allow
 settles it.
 
+**2026-08-28, twentieth pass — own title bar, and the probe from inside
+the app.**
+
+The title bar is now drawn by the app, not AppKit. `navigationTitle` /
+`navigationSubtitle` text takes no font, colour or size from SwiftUI, so
+`WindowAccessor` hides the system title (`titleVisibility = .hidden`) and
+a `.navigation` toolbar item draws it instead: antenna glyph, **KST2Mac**
+in the UTC blue, the callsign in an amber capsule, then the rooms in the
+connection colour. It scales with `Typography` like everything else.
+`navigationTitle` is still set so the Window menu and Mission Control have
+a name to show.
+
+**The spot probe now runs from a connected session.** `KSTCapture` has to
+ask for the password on a terminal; a connected app already holds an
+authenticated session, so Chat ▸ Record spot-format transcript sends the
+probe commands (a minute apart, per the rate limit) and writes every byte
+the server returns to `~/Desktop/kst2mac-spot-probe.txt`. Chat ▸ Finish
+spot transcript closes it.
+
+`TranscriptWriter` is a separate `@unchecked Sendable` class rather than
+part of `AppModel`, because the raw monitor is a `@Sendable` closure
+invoked on the connection's own queue — reaching into a `@MainActor` model
+from there does not compile, correctly, since it would be a data race.
+
 ## Open items
 
 1. **Is the command rate limit per connection or per callsign?** With

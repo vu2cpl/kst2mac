@@ -81,6 +81,9 @@ enum Palette {
     static let connecting = Color(red: 0.97, green: 0.70, blue: 0.30)
     static let offline    = Color(red: 0.55, green: 0.57, blue: 0.62)
 
+    /// The operator's own callsign, wherever it is shown as *theirs*.
+    static let callsignTint = Color(red: 0.98, green: 0.72, blue: 0.40)
+
     /// The server's UTC clock — distinct from everything else, because it
     /// is the one number on screen that is not about a station.
     static let utc = Color(red: 0.55, green: 0.75, blue: 0.92)
