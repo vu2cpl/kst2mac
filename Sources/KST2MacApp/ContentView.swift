@@ -21,40 +21,34 @@ struct ContentView: View {
         return Palette.offline
     }
 
-    private var statusBar: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(stateColor)
-                .frame(width: 8, height: 8)
-            Text(model.status)
-                .font(Typography.text(11, scale))
-                .foregroundStyle(stateColor)
-                .lineLimit(1)
-            Spacer()
-            if !model.serverTime.isEmpty {
-                Text(model.serverTime)
-                    .font(Typography.mono(11, scale, weight: .medium))
-                    .foregroundStyle(Palette.utc)
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(stateColor.opacity(0.08))
-        .background(.bar)
+    /// What this pane is doing, in one word and one colour.
+    private var connectLabel: String {
+        if model.isInChat { return "Disconnect" }
+        if model.isConnected { return "Connecting…" }
+        return "Connect"
     }
 
-    /// Controls sit **left-aligned**, immediately after the picker.
-    ///
-    /// They were previously pushed to the right edge by a `Spacer`, which
-    /// worked for the first pane and clipped for every pane below it —
-    /// the close and float buttons simply were not there to be found. Put
-    /// on the left they cannot be pushed anywhere.
+    /// Controls sit left-aligned and fixed-width, so the columns line up
+    /// down a stack of panes however each one is doing.
     private var header: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Rectangle()
                 .fill(stateColor)
                 .frame(width: 3, height: 18)
                 .cornerRadius(1.5)
+
+            Button(connectLabel) {
+                if model.isConnected {
+                    model.disconnect()
+                } else if let saved = model.storedPassword() {
+                    model.connect(password: saved)
+                } else {
+                    showLogin = true
+                }
+            }
+            .buttonStyle(OutlineButtonStyle(color: stateColor,
+                                            width: 108 * min(Typography.clamped(scale), 1.35)))
+            .font(Typography.text(12, scale, weight: .medium))
 
             Picker("", selection: Binding(
                 get: { model.room },
@@ -66,20 +60,8 @@ struct ContentView: View {
             }
             .labelsHidden()
             .disabled(model.isConnected && !model.isInChat)
-            .frame(width: 210 * min(Typography.clamped(scale), 1.4))
+            .frame(width: 190 * min(Typography.clamped(scale), 1.35))
             .help("Switches room in place while connected (/CHAT)")
-
-            Button(model.isConnected ? "Disconnect" : "Connect") {
-                if model.isConnected {
-                    model.disconnect()
-                } else if let saved = model.storedPassword() {
-                    model.connect(password: saved)
-                } else {
-                    showLogin = true
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(model.isConnected ? Palette.offline : Palette.connected)
 
             if let onFloat {
                 Button("Float", systemImage: "macwindow.on.rectangle", action: onFloat)
@@ -90,18 +72,23 @@ struct ContentView: View {
                     .help("Close this chat and disconnect it")
             }
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 8)
 
-            if model.isInChat {
-                Text(model.room.title)
-                    .font(Typography.text(11, scale, weight: .medium))
-                    .foregroundStyle(stateColor)
-                    .lineLimit(1)
+            Text(model.status)
+                .font(Typography.text(11, scale))
+                .foregroundStyle(stateColor)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            if !model.serverTime.isEmpty {
+                Text(model.serverTime)
+                    .font(Typography.mono(11, scale, weight: .medium))
+                    .foregroundStyle(Palette.utc)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(stateColor.opacity(0.10))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(stateColor.opacity(0.08))
         .background(.bar)
     }
 
@@ -119,9 +106,6 @@ struct ContentView: View {
                     .frame(minWidth: 340, idealWidth: 420)
             }
             .frame(maxHeight: .infinity)
-
-            Divider()
-            statusBar
         }
         .sheet(isPresented: $showLogin) {
             LoginSheet()

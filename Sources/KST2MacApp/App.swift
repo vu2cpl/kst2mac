@@ -60,9 +60,13 @@ struct ChatWindow: View {
     private var models: [AppModel] { paneIDs.map { store.model(for: $0) } }
 
     var body: some View {
-        VSplitView {
-            ForEach(paneIDs, id: \.self) { id in
-                pane(id)
+        VStack(spacing: 0) {
+            identityStrip
+            Divider()
+            VSplitView {
+                ForEach(paneIDs, id: \.self) { id in
+                    pane(id)
+                }
             }
         }
         .frame(minWidth: 900, minHeight: paneIDs.count > 1 ? 780 : 520)
@@ -74,10 +78,7 @@ struct ChatWindow: View {
         })
         .navigationTitle("KST2Mac")
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                brand
-            }
-            ToolbarItem {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     addPane()
                 } label: {
@@ -114,32 +115,41 @@ struct ChatWindow: View {
         .frame(minHeight: 240, maxHeight: .infinity)
     }
 
-    /// The app's own title bar content: name, callsign, rooms — sized and
-    /// coloured, unlike the system one.
-    private var brand: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "antenna.radiowaves.left.and.right")
-                .font(Typography.text(15, scale, weight: .semibold))
-                .foregroundStyle(Palette.utc)
-
+    /// The window's global row: only facts true of the whole window —
+    /// the app name, the operator's callsign, and UTC.
+    ///
+    /// Room, station counts and connection state are deliberately absent.
+    /// They belong to a pane, and with three panes open a single global
+    /// value for any of them would be meaningless.
+    private var identityStrip: some View {
+        HStack(spacing: 11) {
             Text("KST2Mac")
-                .font(Typography.text(16, scale, weight: .semibold))
+                .font(Typography.text(21, scale, weight: .semibold))
                 .foregroundStyle(Palette.utc)
 
-            if !callsign.isEmpty {
-                Text(callsign.uppercased())
-                    .font(Typography.mono(15, scale, weight: .semibold))
-                    .foregroundStyle(Palette.callsignTint)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(Palette.callsignTint.opacity(0.16), in: Capsule())
+            Spacer(minLength: 12)
+
+            if let clock = models.compactMap({ $0.serverTime.isEmpty ? nil : $0.serverTime }).first {
+                Text(clock)
+                    .font(Typography.mono(14, scale, weight: .medium))
+                    .foregroundStyle(Palette.utc)
             }
 
-            Text(rooms)
-                .font(Typography.text(13, scale))
-                .foregroundStyle(anyConnected ? Palette.connected : Palette.offline)
-                .lineLimit(1)
+            Text(callsign.isEmpty ? "SET CALLSIGN" : callsign.uppercased())
+                .font(Typography.mono(17, scale, weight: .semibold))
+                .foregroundStyle(Palette.callsignTint)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 2)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7)
+                        .strokeBorder(Palette.callsignTint.opacity(0.55), lineWidth: 1.5)
+                )
+                .help(callsign.isEmpty ? "Set your callsign in Settings"
+                                       : "Logged in as \(callsign.uppercased())")
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.bar)
     }
 
     private var anyConnected: Bool { models.contains(where: \.isInChat) }

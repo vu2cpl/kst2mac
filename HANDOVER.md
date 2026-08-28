@@ -510,6 +510,35 @@ part of `AppModel`, because the raw monitor is a `@Sendable` closure
 invoked on the connection's own queue — reaching into a `@MainActor` model
 from there does not compile, correctly, since it would be a data race.
 
+**2026-08-28, twenty-first pass — header, settled by mockup.** Several
+build-and-look rounds had failed to land this, so the layouts were drawn
+as mockups first and chosen before any code changed. Worth repeating for
+anything visual.
+
+Two rules came out of it, both from the operator:
+
+1. **Global row carries only global facts** — app name, callsign, UTC.
+   Room, station counts and connection state are per-pane; with three
+   panes open a single global value for any of them says nothing. The
+   callsign appears once for the same reason, and is identity rather than
+   a control: connecting is per-pane, so one callsign button could not say
+   which pane it would connect.
+2. **Fixed-width controls.** "Connect" and "Disconnect" are different
+   lengths, so a naturally-sized button changes width whenever a pane's
+   state changes and the controls to its right stop lining up between
+   panes. `OutlineButtonStyle` pins the width; the room picker is pinned
+   too.
+
+Buttons are outlined rather than filled — Connect is pressed once a
+session, and with panes stacked the solid green fills dominated the
+window. Three states now, including an amber **Connecting…** which
+previously did not exist: the button jumped straight to Disconnect while
+the handshake was still running.
+
+The per-pane bottom status bar is gone; its content moved into the pane
+header, giving every pane back about 26px, which matters when stacking
+three.
+
 ## Open items
 
 1. **Is the command rate limit per connection or per callsign?** With
