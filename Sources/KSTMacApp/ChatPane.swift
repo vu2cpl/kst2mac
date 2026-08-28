@@ -26,8 +26,9 @@ struct ChatPane: View {
 
             Divider()
             Composer(focused: $composerFocused)
+                .layoutPriority(1)      // never squeezed out by the log
         }
-        .frame(minWidth: 480)
+        .frame(minWidth: 480, minHeight: 300)
     }
 }
 
@@ -141,5 +142,6 @@ private struct Composer: View {
                 .disabled(!model.isInChat || model.draft.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         .padding(8)
+        .frame(minHeight: 36)
     }
 }

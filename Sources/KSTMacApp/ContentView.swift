@@ -5,11 +5,42 @@ struct ContentView: View {
     @EnvironmentObject private var model: AppModel
     @State private var showLogin = false
 
+    private var statusBar: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(model.isInChat ? .green : (model.isConnected ? .orange : .secondary))
+                .frame(width: 8, height: 8)
+            Text(model.status)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer()
+            if !model.serverTime.isEmpty {
+                Text(model.serverTime)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(.bar)
+    }
+
     var body: some View {
-        HSplitView {
-            ChatPane()
-            StationPane()
-                .frame(minWidth: 280, idealWidth: 340)
+        // Deliberately a VStack rather than `.safeAreaInset(edge: .bottom)`:
+        // HSplitView does not pass a bottom safe-area inset down to its
+        // children, so the status bar drew *over* the composer and hid the
+        // message field and its buttons entirely.
+        VStack(spacing: 0) {
+            HSplitView {
+                ChatPane()
+                StationPane()
+                    .frame(minWidth: 280, idealWidth: 340)
+            }
+            .frame(maxHeight: .infinity)
+
+            Divider()
+            statusBar
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {
@@ -36,25 +67,6 @@ struct ContentView: View {
                     }
                 }
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(model.isInChat ? .green : (model.isConnected ? .orange : .secondary))
-                    .frame(width: 8, height: 8)
-                Text(model.status)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if !model.serverTime.isEmpty {
-                    Text(model.serverTime)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(.bar)
         }
         .sheet(isPresented: $showLogin) {
             LoginSheet()

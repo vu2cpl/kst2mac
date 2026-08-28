@@ -242,6 +242,15 @@ the fixed lines that follow are suppressed (`.boilerplate`). Matching is
 prefix-anchored and tested against a message that mentions the same text,
 so suppression cannot swallow traffic.
 
+**2026-08-28, tenth pass — clipped composer.** The status bar was attached
+with `.safeAreaInset(edge: .bottom)` on an `HSplitView`, and HSplitView
+does not pass a bottom safe-area inset down to its children — so the bar
+drew *over* the composer and hid the message field, the backlog button and
+Send entirely. Replaced with an explicit `VStack { HSplitView; Divider;
+statusBar }`, and the composer carries `layoutPriority(1)` plus a minimum
+height so the log can never squeeze it out. Worth remembering before
+reaching for `safeAreaInset` over any split view.
+
 ## Open items
 
 1. **Join/leave notices** — shape unknown, so the table only updates on
