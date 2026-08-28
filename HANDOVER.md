@@ -570,6 +570,24 @@ you arrived is worse than silence.
   all" has one true answer however many panes are open. It goes green when
   any pane is in a chat; which pane is which stays the pane rows' job.
 
+**2026-08-28, twenty-third pass — the header never redrew.** The callsign
+stayed amber after connecting even though the logic was right, and this is
+worth remembering because it will recur.
+
+`ChatWindow` observes `SessionStore`. It does **not** observe the
+individual `AppModel`s — nothing in SwiftUI makes a view observe objects
+it merely reaches through another observed object. So `isInChat` flipping
+on a session redrew that pane (which holds the model as an
+`@EnvironmentObject`) but never the window header derived from the same
+models.
+
+The store now subscribes to each session's `$isInChat`, `$room` and
+`$serverTime` and republishes the aggregate — `anyConnected`,
+`connectedRooms`, `clock`. The header reads those. Anything else
+window-wide derived from per-session state must go through the store the
+same way; deriving it inline from `models` compiles and silently never
+updates.
+
 ## Open items
 
 **Blocked on one capture**

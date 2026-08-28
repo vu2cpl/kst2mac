@@ -129,8 +129,8 @@ struct ChatWindow: View {
 
             Spacer(minLength: 12)
 
-            if let clock = models.compactMap({ $0.serverTime.isEmpty ? nil : $0.serverTime }).first {
-                Text(clock)
+            if !store.clock.isEmpty {
+                Text(store.clock)
                     .font(Typography.mono(14, scale, weight: .medium))
                     .foregroundStyle(Palette.utc)
             }
@@ -164,11 +164,15 @@ struct ChatWindow: View {
         .background(.bar)
     }
 
-    private var anyConnected: Bool { models.contains(where: \.isInChat) }
+    // Read from the store, which republishes the aggregate. Deriving
+    // these from `models` here does not work: this view observes the
+    // store, not each session, so a pane connecting would never redraw
+    // the header.
+    private var anyConnected: Bool { store.anyConnected }
 
     private var rooms: String {
-        let names = models.filter(\.isInChat).map(\.room.title)
-        return names.isEmpty ? "not connected" : names.joined(separator: "  +  ")
+        store.connectedRooms.isEmpty ? "not connected"
+                                     : store.connectedRooms.joined(separator: "  +  ")
     }
 
     private func addPane() {
