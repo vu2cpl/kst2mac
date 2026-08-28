@@ -135,17 +135,29 @@ struct ChatWindow: View {
                     .foregroundStyle(Palette.utc)
             }
 
+            // Green once *any* pane is in a chat. That is not the same
+            // ambiguity as a per-pane control: this answers "am I on the
+            // chat at all", which has one true answer however many panes
+            // are open. Which pane is which is the pane rows' job.
             Text(callsign.isEmpty ? "SET CALLSIGN" : callsign.uppercased())
                 .font(Typography.mono(17, scale, weight: .semibold))
-                .foregroundStyle(Palette.callsignTint)
+                .foregroundStyle(anyConnected ? Palette.connected : Palette.callsignTint)
                 .padding(.horizontal, 11)
                 .padding(.vertical, 2)
                 .overlay(
                     RoundedRectangle(cornerRadius: 7)
-                        .strokeBorder(Palette.callsignTint.opacity(0.55), lineWidth: 1.5)
+                        .strokeBorder(anyConnected ? Palette.connected
+                                                   : Palette.callsignTint.opacity(0.55),
+                                      lineWidth: 1.5)
                 )
+                .background(
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(anyConnected ? Palette.connected.opacity(0.14) : .clear)
+                )
+                .animation(.easeOut(duration: 0.2), value: anyConnected)
                 .help(callsign.isEmpty ? "Set your callsign in Settings"
-                                       : "Logged in as \(callsign.uppercased())")
+                      : anyConnected ? "Logged in as \(callsign.uppercased()) — \(rooms)"
+                                     : "Not connected")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)

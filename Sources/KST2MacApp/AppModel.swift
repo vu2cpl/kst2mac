@@ -162,6 +162,7 @@ final class AppModel: ObservableObject {
     /// Fetch recent messages. A deliberate action, because it costs one of
     /// the operator's roughly-one-per-minute command slots.
     func loadBacklog() {
+        Sounds.shared.beQuiet(for: 8)
         connection?.requestBacklog(userInitiated: true)
     }
 
@@ -241,6 +242,9 @@ final class AppModel: ObservableObject {
         case .loggedIn(let room):
             isInChat = true
             status = "In \(room.title) as \(callsign)"
+            // Joining a busy room replays recent traffic; alerting on
+            // messages sent before we arrived would be a volley of noise.
+            Sounds.shared.beQuiet(for: 8)
             // One command on join, not two: the server allows about one
             // a minute, and the roster is worth more than the backlog.
             // Backlog is a button the operator can spend a slot on.
@@ -281,11 +285,16 @@ final class AppModel: ObservableObject {
     private func append(_ line: KSTLine) {
         switch emphasis(for: line) {
         case .directed, .preamble:
+            let kind = emphasis(for: line)
             if case .message(let from, let name, _, let text) = line.kind {
                 Notifier.shared.mention(from: from, name: name, text: text,
-                                        room: room.title,
-                                        directed: emphasis(for: line) == .directed)
+                                        room: room.title, directed: kind == .directed)
             }
+            // Sound plays whether or not the app is frontmost — that is
+            // the case notifications cannot cover.
+            Sounds.shared.play(kind == .directed ? .directed : .preamble)
+        case .watched:
+            Sounds.shared.play(.watched)
         default:
             break
         }

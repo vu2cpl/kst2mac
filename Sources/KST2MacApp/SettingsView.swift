@@ -10,6 +10,8 @@ struct SettingsView: View {
     @AppStorage("host") private var host: String = KSTConnection.defaultHost
     @AppStorage("port") private var port: Int = Int(KSTConnection.defaultPort)
 
+    @AppStorage("sound.volume") private var soundVolume: Double = 0.7
+
     @State private var newPassword = ""
     @State private var note: String?
 
@@ -58,6 +60,21 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            Section("Sounds") {
+                ForEach(Sounds.Event.allCases) { event in
+                    HStack {
+                        SoundPicker(event: event)
+                    }
+                }
+                HStack {
+                    Text("Volume")
+                    Slider(value: $soundVolume, in: 0...1)
+                }
+                Text("Sounds play whether or not KST2Mac is in front — that is the case a notification banner cannot cover. Repeats within two seconds are suppressed, and a backlog arriving on join stays silent.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Section("Server") {
                 TextField("Host", text: Binding(
                     get: { host }, set: { host = $0 }))
@@ -68,5 +85,31 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+    }
+}
+
+
+/// One row: which sound fires for one event, with a preview.
+private struct SoundPicker: View {
+    let event: Sounds.Event
+    @AppStorage private var choice: String
+
+    init(event: Sounds.Event) {
+        self.event = event
+        _choice = AppStorage(wrappedValue: event.defaultSound, event.key)
+    }
+
+    var body: some View {
+        Picker(event.title, selection: $choice) {
+            ForEach(Sounds.available, id: \.self) { Text($0).tag($0) }
+        }
+        Button {
+            Sounds.shared.preview(choice)
+        } label: {
+            Image(systemName: "speaker.wave.2")
+        }
+        .buttonStyle(.borderless)
+        .disabled(choice == Sounds.off)
+        .help("Play \(choice)")
     }
 }

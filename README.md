@@ -29,6 +29,7 @@ table with distance and beam heading from your own square.
 | User-list / roster parser | done — `/SHow USer`, prompt-delimited, unit-tested |
 | Scrollback backfill on join | done — `/SHOW MSG` |
 | Live room switching | done — `/CHAT`, no reconnect |
+| Alert sounds | done — per event, plays even when frontmost, burst-suppressed |
 | Mention notifications | done — banner when not frontmost, plus Dock badge |
 | Multiple windows | done — concurrent logins verified |
 | Stacked / floating panes | done — add, close, or tear a pane into its own window with its connection intact |

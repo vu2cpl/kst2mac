@@ -539,6 +539,37 @@ The per-pane bottom status bar is gone; its content moved into the pane
 header, giving every pane back about 26px, which matters when stacking
 three.
 
+**2026-08-28, twenty-second pass — sounds, and two header bugs.**
+
+**Per-event sounds** (KST2Me manual §3.5): a chosen sound for `/CQ`, for a
+preamble, and for a watch, picked in Settings from everything macOS ships
+plus anything in `~/Library/Sounds` — enumerated at runtime, so dropping
+in a personal `.aiff` needs no code change. Default for `/CQ` is Morse,
+which a ham app may as well use.
+
+Sound deliberately plays **whether or not the app is frontmost**, unlike
+the notification banners. That is the case banners cannot cover, and the
+one this app is actually used in: the window visible on a second monitor
+while you work the radio.
+
+Two suppressions matter more than the feature. Repeats inside two seconds
+are dropped, and joining a room — or pressing the backlog button — goes
+quiet for eight seconds, because `/SHOW MSG` replays fifteen lines at once
+and several may name you. A volley of alerts about messages sent before
+you arrived is worse than silence.
+
+**Two header bugs found by the operator:**
+
+- The app name appeared **twice**. `WindowAccessor` hid the system title,
+  but `navigationTitle` re-applied it afterwards. Dropping
+  `navigationTitle` and setting `window.title` directly gives the Window
+  menu and Mission Control a name without drawing one.
+- The **callsign box stayed amber when connected.** It had been made
+  identity-only on the reasoning that aggregate state is ambiguous across
+  panes — but that reasoning does not apply here: "am I on the chat at
+  all" has one true answer however many panes are open. It goes green when
+  any pane is in a chat; which pane is which stays the pane rows' job.
+
 ## Open items
 
 **Blocked on one capture**
