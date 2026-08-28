@@ -13,6 +13,11 @@ final class AppModel: ObservableObject {
 
     @AppStorage("savePassword") var savePassword: Bool = true
 
+    /// Callsigns worth watching for — their traffic is tinted so it can be
+    /// picked out of a busy room. Shared across windows on purpose: a
+    /// watch is about a station, not about a room.
+    @AppStorage("watchedCalls") private var watchedRaw: String = ""
+
     /// **Per window.** Each window owns its own connection, so two
     /// windows are two sessions in two different rooms — this cannot live
     /// in shared storage or the windows would fight over it. The last
@@ -259,11 +264,58 @@ final class AppModel: ObservableObject {
         return Maidenhead.path(from: homeGrid, to: loc)
     }
 
+    // MARK: - Emphasis
+
+    /// How a line should be picked out of the log. Modelled on KST2Me,
+    /// which colours to-me, from-me and watched traffic differently —
+    /// the three things you scan a busy chat for.
+    enum Emphasis {
+        case mention   // addressed to us, or naming us
+        case watched   // a callsign we are waiting on
+        case own       // something we sent
+        case none
+    }
+
+    var watched: Set<String> {
+        Set(watchedRaw.split(separator: ",").map { String($0).uppercased() })
+            .subtracting([""])
+    }
+
+    func isWatched(_ callsign: String) -> Bool {
+        watched.contains(callsign.uppercased())
+    }
+
+    func toggleWatch(_ callsign: String) {
+        let call = callsign.uppercased()
+        var set = watched
+        if set.contains(call) { set.remove(call) } else { set.insert(call) }
+        watchedRaw = set.sorted().joined(separator: ",")
+        objectWillChange.send()
+    }
+
+    func clearWatches() {
+        watchedRaw = ""
+        objectWillChange.send()
+    }
+
+    /// Mention wins over watch, and watch over our own traffic: a line
+    /// addressed to you matters more than one merely from a station you
+    /// are following.
+    func emphasis(for line: KSTLine) -> Emphasis {
+        guard case .message(let from, _, _, _) = line.kind else { return .none }
+        if mentionsMe(line) { return .mention }
+        if isWatched(from) { return .watched }
+        if !callsign.isEmpty, from == callsign.uppercased() { return .own }
+        return .none
+    }
+
     /// True if the line is addressed to, or mentions, our own callsign.
     func mentionsMe(_ line: KSTLine) -> Bool {
         guard !callsign.isEmpty else { return false }
         let me = callsign.uppercased()
-        if case .message(_, _, let to, let text) = line.kind {
+        if case .message(let from, _, let to, let text) = line.kind {
+            // Our own message naming us is not a mention of us.
+            if from == me { return false }
             if to == me { return true }
             return text.uppercased().contains(me)
         }

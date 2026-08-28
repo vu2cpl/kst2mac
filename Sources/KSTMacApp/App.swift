@@ -16,6 +16,9 @@ struct KSTMacApp: App {
             CommandGroup(replacing: .newItem) {
                 NewWindowButton()
             }
+            CommandMenu("Chat") {
+                ClearWatchesButton()
+            }
         }
 
         Settings {
@@ -40,6 +43,17 @@ struct ChatWindow: View {
                 for: NSApplication.didBecomeActiveNotification)) { _ in
                 Notifier.shared.clearBadge()
             }
+    }
+}
+
+/// Watches are global, so this needs a model only to reach the shared
+/// defaults — any instance will do.
+private struct ClearWatchesButton: View {
+    @StateObject private var model = AppModel()
+
+    var body: some View {
+        Button("Clear all watches") { model.clearWatches() }
+            .disabled(model.watched.isEmpty)
     }
 }
 

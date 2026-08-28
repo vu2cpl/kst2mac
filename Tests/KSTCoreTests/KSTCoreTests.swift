@@ -518,3 +518,44 @@ final class BannerTests: XCTestCase {
         }
     }
 }
+
+/// Emphasis precedence is modelled on KST2Me, which colours to-me,
+/// from-me and watched traffic differently. The rules live in the app
+/// target, but the parse they depend on is here — these guard the inputs.
+final class EmphasisInputTests: XCTestCase {
+
+    private let parser = LineParser()
+
+    /// A line we sent has us as the *sender*, never as `to`.
+    func testOwnMessageHasUsAsSender() {
+        guard case .message(let from, _, let to, _) =
+                parser.parse("0850Z VU2CPL Manoj MK83> anyone on 6m?").kind else {
+            return XCTFail("expected a message")
+        }
+        XCTAssertEqual(from, "VU2CPL")
+        XCTAssertNil(to)
+    }
+
+    /// A directed reply to us has us as `to` and someone else as sender —
+    /// the distinction the mention rule turns on.
+    func testDirectedReplyHasUsAsRecipient() {
+        guard case .message(let from, _, let to, _) =
+                parser.parse("0851Z SM5DWF Peder 2m> (VU2CPL) GM Manoj").kind else {
+            return XCTFail("expected a message")
+        }
+        XCTAssertEqual(from, "SM5DWF")
+        XCTAssertEqual(to, "VU2CPL")
+    }
+
+    /// Our own message quoting our callsign must not read as a mention of
+    /// us — the sender check has to come first.
+    func testOwnMessageQuotingOwnCallsign() {
+        guard case .message(let from, _, _, let text) =
+                parser.parse("0852Z VU2CPL Manoj MK83> this is VU2CPL calling cq").kind else {
+            return XCTFail("expected a message")
+        }
+        XCTAssertEqual(from, "VU2CPL")
+        XCTAssertTrue(text.uppercased().contains("VU2CPL"),
+                      "text does contain our call — only the sender check saves us")
+    }
+}

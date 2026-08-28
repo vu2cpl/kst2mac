@@ -27,6 +27,8 @@ table with distance and beam heading from your own square.
 | Live room switching | done — `/CHAT`, no reconnect |
 | Mention notifications | done — banner when not frontmost, plus Dock badge |
 | Multiple windows | done — one connection and room per window, concurrent logins verified |
+| Watched callsigns | done — right-click a station to watch; their traffic is tinted |
+| Own / mention / watch emphasis | done — three-way, modelled on KST2Me |
 | Callsign colour identity | done — stable per-callsign colour in log and table |
 | Banner collapsing | done — repeated join banners become one room divider |
 | Command rate limiting | done — server allows ~1/min; app never spends your budget unasked |

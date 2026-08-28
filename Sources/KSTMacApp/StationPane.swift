@@ -25,6 +25,12 @@ struct StationPane: View {
                                 .foregroundStyle(.tertiary)
                                 .help("Away from the terminal")
                         }
+                        if model.isWatched(s.callsign) {
+                            Image(systemName: "eye.fill")
+                                .font(.caption2)
+                                .foregroundStyle(Palette.watchedBar)
+                                .help("Watched — their traffic is tinted in the log")
+                        }
                     }
                 }
                 .width(min: 92)
@@ -57,6 +63,9 @@ struct StationPane: View {
             .contextMenu(forSelectionType: Station.ID.self) { ids in
                 if let call = ids.first {
                     Button("Direct message \(call)") { model.directedTo = call }
+                    Button(model.isWatched(call) ? "Stop watching \(call)" : "Watch \(call)") {
+                        model.toggleWatch(call)
+                    }
                 }
             }
 

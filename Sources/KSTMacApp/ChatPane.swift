@@ -11,7 +11,7 @@ struct ChatPane: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(model.lines) { line in
-                            LineRow(line: line, highlighted: model.mentionsMe(line))
+                            LineRow(line: line, emphasis: model.emphasis(for: line))
                                 .id(line.id)
                         }
                     }
@@ -34,7 +34,25 @@ struct ChatPane: View {
 
 private struct LineRow: View {
     let line: KSTLine
-    let highlighted: Bool
+    let emphasis: AppModel.Emphasis
+
+    private var fill: Color {
+        switch emphasis {
+        case .mention: return Palette.mentionFill
+        case .watched: return Palette.watchedFill
+        case .own:     return Palette.ownFill
+        case .none:    return .clear
+        }
+    }
+
+    private var bar: Color {
+        switch emphasis {
+        case .mention: return Palette.mentionBar
+        case .watched: return Palette.watchedBar
+        case .own:     return Palette.ownBar
+        case .none:    return .clear
+        }
+    }
 
     var body: some View {
         switch line.kind {
@@ -43,7 +61,7 @@ private struct LineRow: View {
                 // A left bar rather than only a wash, so a line naming you
                 // is findable while scrolling fast.
                 Rectangle()
-                    .fill(highlighted ? Palette.mentionBar : .clear)
+                    .fill(bar)
                     .frame(width: 2)
 
                 Text(line.stamp ?? "")
@@ -76,7 +94,7 @@ private struct LineRow: View {
             }
             .padding(.vertical, 1.5)
             .padding(.trailing, 4)
-            .background(highlighted ? Palette.mentionFill : .clear)
+            .background(fill)
 
         case .joined(let chat):
             // One divider per join or /CHAT switch, instead of a

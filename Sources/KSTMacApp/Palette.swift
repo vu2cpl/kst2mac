@@ -55,7 +55,15 @@ enum Palette {
         }
     }
 
-    /// Background behind a line that names you.
-    static let mentionFill = Color.accentColor.opacity(0.14)
+    /// Row emphasis. KST2Me uses saturated fills for these; on a modern
+    /// display a quiet wash plus a solid edge bar reads as clearly and
+    /// keeps the text legible, which saturated backgrounds do not.
+    static let mentionFill = Color.accentColor.opacity(0.16)
     static let mentionBar  = Color.accentColor
+
+    static let watchedFill = Color(red: 0.35, green: 0.75, blue: 0.45).opacity(0.13)
+    static let watchedBar  = Color(red: 0.35, green: 0.78, blue: 0.48)
+
+    static let ownFill     = Color(red: 0.55, green: 0.60, blue: 0.75).opacity(0.11)
+    static let ownBar      = Color(red: 0.58, green: 0.64, blue: 0.80)
 }

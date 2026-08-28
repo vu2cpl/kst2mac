@@ -309,6 +309,29 @@ each raise a banner for the same message. `Notifier` now suppresses a
 repeat of the same sender-plus-text within 30s, so one message means one
 banner however many windows can see it.
 
+**2026-08-28, thirteenth pass — emphasis, from KST2Me.** Looking at the
+Windows client (KST2Me) surfaced a real gap: it tints three kinds of line
+differently — addressed to you, sent by you, and from a callsign you are
+watching — and those are exactly the three things you scan a busy chat
+for. This client only had the first.
+
+Added `AppModel.Emphasis` with that precedence: mention beats watch beats
+own. A line addressed to you matters more than one merely from a station
+you follow, and your own line matters least — you already know what you
+said.
+
+Watches are stored in shared defaults, not per window: a watch is about a
+station, not a room. Right-click a station to watch or unwatch; Chat ▸
+Clear all watches empties the list.
+
+One bug fixed along the way: `mentionsMe` matched our callsign anywhere in
+the text, so **our own** message quoting our own call read as a mention of
+us. The sender is now checked first. There is a test for it.
+
+KST2Me uses saturated fills for these. On a modern display a quiet wash
+plus a solid edge bar reads as clearly and keeps the text legible, which a
+magenta background does not.
+
 ## Open items
 
 1. **Is the command rate limit per connection or per callsign?** With
