@@ -299,18 +299,23 @@ directly.
 Each window owns an `AppModel` and therefore its own `KSTConnection` —
 one window per room, which is the point.
 
-**Unverified and important:** two windows means two simultaneous logins
-with the same callsign, and whether the server permits that is unknown. It
-may kick the first session. There is a clue in the roster capture —
-`DN9APW-2` — suggesting extra sessions take an SSID suffix, so if the
-server objects, the fix is probably a per-window login of `VU2CPL-2`. Not
-implemented on a guess; test first.
+**Resolved same day:** the server **does** allow several simultaneous
+logins on one callsign — three windows were opened in different rooms with
+no session dropped. No SSID suffix needed. (`DN9APW-2` in the roster shows
+a suffix exists; what it signifies is untested and no longer blocking.)
+
+Three windows did expose one thing: two windows in the *same* room would
+each raise a banner for the same message. `Notifier` now suppresses a
+repeat of the same sender-plus-text within 30s, so one message means one
+banner however many windows can see it.
 
 ## Open items
 
-1. **Does the server allow two logins on one callsign?** Blocks the
-   two-window feature being genuinely useful. If not, add a per-window
-   login suffix (`VU2CPL-2`) — see the `DN9APW-2` clue above.
+1. **Is the command rate limit per connection or per callsign?** With
+   several windows open this decides whether they contend for one budget.
+   Symptom if shared: "Please wait N second(s)" appearing far more often
+   with three windows than with one. Each window currently polls the
+   roster every five minutes independently.
 2. **Join/leave notices** — shape unknown, so the table only updates on
    the 60s roster poll. Needs a longer capture.
 3. **`/SHow DX` spot format**, if spots are ever surfaced. They arrive

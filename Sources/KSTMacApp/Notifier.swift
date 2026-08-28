@@ -15,6 +15,11 @@ final class Notifier {
     private var authorized = false
     private var asked = false
 
+    /// Recently notified mentions, so two windows watching the same room
+    /// raise one banner rather than one each. Keyed on sender plus text,
+    /// which is what the operator would call "the same message".
+    private var recent: [String: Date] = [:]
+
     /// `UNUserNotificationCenter.current()` traps outright in a process
     /// with no bundle identifier — which is exactly what `swift run
     /// KSTMac` is. Everything here is a no-op in that case so the app
@@ -34,6 +39,12 @@ final class Notifier {
     ///   with `/CQ`, as opposed to merely mentioning our callsign.
     func mention(from: String, name: String?, text: String, room: String, directed: Bool) {
         guard available, authorized, !NSApp.isActive else { return }
+
+        let key = "\(from)|\(text)"
+        let now = Date()
+        recent = recent.filter { now.timeIntervalSince($0.value) < 30 }
+        guard recent[key] == nil else { return }
+        recent[key] = now
 
         let content = UNMutableNotificationContent()
         content.title = directed ? "\(from) → you" : "\(from) mentioned you"

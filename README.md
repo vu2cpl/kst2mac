@@ -26,7 +26,7 @@ table with distance and beam heading from your own square.
 | Scrollback backfill on join | done — `/SHOW MSG` |
 | Live room switching | done — `/CHAT`, no reconnect |
 | Mention notifications | done — banner when not frontmost, plus Dock badge |
-| Multiple windows | done — one connection and room per window (see caveat below) |
+| Multiple windows | done — one connection and room per window, concurrent logins verified |
 | Callsign colour identity | done — stable per-callsign colour in log and table |
 | Banner collapsing | done — repeated join banners become one room divider |
 | Command rate limiting | done — server allows ~1/min; app never spends your budget unasked |
@@ -128,11 +128,9 @@ so you can watch two rooms at once. Each window has its own room picker
 and its own station table; settings (callsign, locator, server) stay
 global.
 
-Caveat: this means two simultaneous logins on the same callsign, and it is
-not yet known whether the server permits that — it may drop the first
-session. The roster contains callsigns like `DN9APW-2`, which suggests
-additional sessions use an SSID suffix; if the server objects, a
-per-window login of `VU2CPL-2` is the likely fix.
+The server allows several simultaneous logins on one callsign — three
+windows in three rooms have been run with no session dropped — so no SSID
+suffix is needed.
 
 ## Conventions
 

@@ -283,6 +283,21 @@ without being asked.**
   parse as chat**, so an operator typing "please wait 30 seconds" cannot
   silently reconfigure the throttle.
 
+## Concurrent sessions — verified 2026-08-28
+
+**One callsign may hold several simultaneous logins.** Three were open at
+once, in different rooms, with no session being dropped. This is what
+makes one-window-per-room workable.
+
+The roster contains callsigns like `DN9APW-2`, so an SSID suffix exists,
+but it is evidently not *required* for a second session — untested what it
+actually signifies.
+
+Unknown: whether the ~1-command-per-minute limit is per **connection** or
+per **callsign**. If per callsign, several windows will contend for one
+budget, and the symptom would be "Please wait N second(s)" appearing far
+more often with three windows open than with one.
+
 ## The one rule that shapes the client
 
 **Anything written to the socket after login goes straight to the room.**
