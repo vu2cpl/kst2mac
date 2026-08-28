@@ -588,50 +588,67 @@ window-wide derived from per-session state must go through the store the
 same way; deriving it inline from `models` compiles and silently never
 updates.
 
+**2026-08-28, twenty-fourth pass — spot format captured, and two render
+bugs.**
+
+The probe ran from the app on a live session, and the answer is the good
+one: **`/SET DXCLX` emits standard fixed-column `DX de …` cluster lines**,
+identical in shape to what any AR-Cluster or CLX node sends. So the dxca
+bridge is a *relay* — serve a small cluster telnet node, pass the lines
+through verbatim, and let dxca dial it as one more `[[cluster_nodes]]`
+entry. `/SET DX` gives the same content chat-prefixed and single-spaced;
+CLX is the one to forward. Full detail in `docs/PROTOCOL.md`.
+
+Two rendering bugs the operator spotted in the same window:
+
+- **Wrapped messages drew over the row below.** The row used
+  `HStack(alignment: .firstTextBaseline)`, which measured the row at
+  one line's height, so a wrapped message overflowed its neighbour. Now
+  `.top` alignment plus `.fixedSize(horizontal: false, vertical: true)` on
+  the text, so the row reports its true wrapped height.
+- **DX spot lines wrapped and scrambled.** They are fixed 80-column text;
+  wrapping destroys the columns. Server lines now scroll sideways instead
+  of wrapping.
+
+Also fixed the app name appearing twice *again*: SwiftUI re-applies its
+title handling whenever the toolbar rebuilds — several times a second on a
+busy chat — which undid `titleVisibility = .hidden`. `WindowAccessor` now
+re-applies after SwiftUI's pass rather than during it.
+
 ## Open items
-
-**Blocked on one capture**
-
-1. **`/SHow DX` spot format.** Spots arrive disabled (`DX OFF, ANN OFF,
-   WWC OFF` per `/SHow CONFig`), so no transcript has ever contained one.
-   Chat ▸ Record spot-format transcript runs the probe on a live session
-   and writes to `~/Desktop/kst2mac-spot-probe.txt`; `KSTCapture --probe`
-   does the same from a terminal. Everything below in this group waits on
-   it.
-2. **Bridge spots into dxca.** dxca ingests via `[[cluster_nodes]]`
-   (host / port / login_call), so the clean shape is for KST2Mac to
-   *serve* a small DX-cluster telnet node that dxca dials, rather than
-   inventing a private channel. If `/SET DXCLX` ("CLX format") already
-   emits standard `DX de …` lines this is a relay, not a re-encoding.
 
 **Ready to build**
 
-3. **Per-event sounds** (KST2Me manual §3.5) — a sound for `/CQ`, for a
-   preamble, for a watch. The obvious next thing for an app left running
-   during a lift; notifications only fire when it is not frontmost.
-4. **Away toggle** — `/SET HERE` / `/UNSET HERE` (§5.3.4). One command,
+1. **Bridge spots into dxca.** Unblocked — `/SET DXCLX` emits standard
+   fixed-column `DX de …` cluster lines (see `docs/PROTOCOL.md`), so this
+   is a verbatim relay. Shape: KST2Mac serves a small DX-cluster telnet
+   node; dxca dials it as one more `[[cluster_nodes]]` entry
+   (host / port / login_call). Needs a listener, a login prompt, and
+   forwarding of any line matching `^DX de `.
+
+2. **Away toggle** — `/SET HERE` / `/UNSET HERE` (§5.3.4). One command,
    and it is what puts the brackets round a callsign in everyone else's
    roster.
-5. **Watch scopes** (§3.4) — watches currently match message text and
+3. **Watch scopes** (§3.4) — watches currently match message text and
    callsigns; KST2Me also scopes them to the user list, spot calls,
    frequency, and locator.
-6. **QRB highlight thresholds** (§3.10.3) — highlight stations beyond a
+4. **QRB highlight thresholds** (§3.10.3) — highlight stations beyond a
    set distance, rather than only shading by distance.
 
 **Needs observation**
 
-7. **Join/leave notices** — shape unknown, so the table only updates on
+5. **Join/leave notices** — shape unknown, so the table only updates on
    the five-minute roster poll.
-8. **Is the command rate limit per connection or per callsign?** Symptom
+6. **Is the command rate limit per connection or per callsign?** Symptom
    if shared: wait notices appearing far more often with three panes than
    with one. Each pane polls the roster independently.
 
 **Deferred**
 
-9. **Notarisation** (`notarize.sh`, as in the sibling Mac apps) — only
+7. **Notarisation** (`notarize.sh`, as in the sibling Mac apps) — only
    needed if this is ever distributed beyond the shack. Ad-hoc signing is
    fine locally.
-10. **Map view** — explicitly out of scope at v0.1 and still is.
+8. **Map view** — explicitly out of scope at v0.1 and still is.
 
 ## Gotchas
 

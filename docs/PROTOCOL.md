@@ -298,6 +298,42 @@ per **callsign**. If per callsign, several windows will contend for one
 budget, and the symptom would be "Please wait N second(s)" appearing far
 more often with three windows open than with one.
 
+## DX spots — verified 2026-08-28
+
+Spots arrive **disabled**; `/SHow CONFig` shows `DX OFF, ANN OFF, WWC OFF`
+on a fresh account. `/SET DX` or `/SET DXCLX` turns them on (`/UNSET DX`
+off again), and the two give **different formats**.
+
+`/SET DXCLX` → `DX messages allowed (CLX format).` Then spots are
+standard, fixed-column DX-cluster lines:
+
+```
+DX de w9ffa:      3573.6  KS0AA        FT8, EM69ij <-> EM28           1241Z
+DX de oh2oja:     3685.0  OH2OJA/P     WWFF OHFF-1051                 1235Z
+DX de na6jd:      3573.0  CX6TU                                       0948Z
+```
+
+`DX de <spotter>:` then frequency, DX callsign, comment, and `HHMMZ` — the
+same shape any AR-Cluster or CLX node emits.
+
+`/SET DX` → `DX messages allowed.` Same content, chat-prefixed and
+single-spaced instead:
+
+```
+1241Z DX de w9ffa: 3573.6 KS0AA FT8, EM69ij <-> EM28
+1251Z DX de nl7m: 1824.5 FK8HC cq
+```
+
+**This settles the dxca bridge.** With `/SET DXCLX` the server already
+emits the exact line format a DX-cluster client expects, so KST2Mac can
+serve a small cluster telnet node and pass the lines through **verbatim** —
+a relay, not a re-encoding. dxca dials it as one more `[[cluster_nodes]]`
+entry (host / port / login_call).
+
+Note the CLX block is fixed-column and 80 wide, which is why the chat pane
+scrolls those lines sideways rather than wrapping them: wrapping scrambles
+the columns.
+
 ## The one rule that shapes the client
 
 **Anything written to the socket after login goes straight to the room.**

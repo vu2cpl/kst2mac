@@ -62,7 +62,10 @@ private struct LineRow: View {
     var body: some View {
         switch line.kind {
         case .message(let from, let name, let to, let text):
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            // .top, not .firstTextBaseline: with a wrapping message the
+            // baseline alignment pulled the row's measured height back to
+            // one line, and the wrapped text drew over the row below.
+            HStack(alignment: .top, spacing: 6) {
                 // A left bar rather than only a wash, so a line naming you
                 // is findable while scrolling fast.
                 Rectangle()
@@ -73,6 +76,7 @@ private struct LineRow: View {
                     .font(Typography.mono(11, scale))
                     .foregroundStyle(.tertiary)
                     .frame(width: 46 * Typography.clamped(scale), alignment: .leading)
+                    .padding(.top, 1)
 
                 Button {
                     model.directedTo = from
@@ -101,10 +105,13 @@ private struct LineRow: View {
                 Text(MessageText.attributed(text))
                     .font(Typography.text(13, scale))
                     .textSelection(.enabled)
+                    // Report the full wrapped height, or the row is sized
+                    // for one line and the rest spills over its neighbour.
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer(minLength: 0)
             }
-            .padding(.vertical, 1.5)
+            .padding(.vertical, 2)
             .padding(.trailing, 4)
             .background(fill)
 
@@ -140,15 +147,26 @@ private struct LineRow: View {
             Text(line.raw)
                 .font(Typography.text(12, scale))
                 .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
         case .other:
             // Unclassified server output — shown verbatim rather than
-            // dropped, so banners, /HELP output and the user list are
-            // never invisible just because the parser doesn't know them.
-            Text(line.raw)
-                .font(Typography.mono(11, scale))
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
+            // dropped, so banners, /HELP output and DX spots are never
+            // invisible just because the parser doesn't know them.
+            //
+            // Not wrapped: this is fixed-column text (a DX spot is laid
+            // out in 80 columns) and wrapping scrambles the columns into
+            // exactly the mess it is meant to avoid. It scrolls sideways
+            // instead.
+            ScrollView(.horizontal, showsIndicators: false) {
+                Text(line.raw)
+                    .font(Typography.mono(11, scale))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
         }
     }
 }
