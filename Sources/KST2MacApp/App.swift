@@ -50,27 +50,42 @@ struct ChatWindow: View {
     /// Per window, and restored with it.
     @SceneStorage("showSecondChat") private var showSecond = false
 
-    private var title: String {
-        let rooms = [top, bottom]
-            .prefix(showSecond ? 2 : 1)
-            .filter(\.isInChat)
-            .map(\.room.title)
-        return rooms.isEmpty ? "KST2Mac" : rooms.joined(separator: "  ·  ")
+    /// Who we are and where we are. The app name stays in the title so
+    /// the window is identifiable in Mission Control and the Window menu;
+    /// callsign and rooms go in the subtitle, which is where macOS puts
+    /// the changing detail.
+    private var subtitle: String {
+        let panes = [top, bottom].prefix(showSecond ? 2 : 1)
+        let rooms = panes.filter(\.isInChat).map(\.room.title)
+        let call = panes.first?.callsign.uppercased() ?? ""
+
+        var parts: [String] = []
+        if !call.isEmpty { parts.append(call) }
+        parts.append(rooms.isEmpty ? "not connected" : rooms.joined(separator: " + "))
+        return parts.joined(separator: "  ·  ")
     }
 
     var body: some View {
         VSplitView {
             ContentView()
                 .environmentObject(top)
-                .frame(minHeight: 260)
+                // maxHeight lets VSplitView share the space instead of
+                // giving the first pane its ideal size and squeezing the
+                // second below its minimum, where it gets clipped and
+                // loses its Connect button.
+                .frame(minHeight: 240, maxHeight: .infinity)
             if showSecond {
                 ContentView()
                     .environmentObject(bottom)
-                    .frame(minHeight: 260)
+                    .frame(minHeight: 240, maxHeight: .infinity)
             }
         }
-        .frame(minWidth: 900, minHeight: 520)
-        .navigationTitle(title)
+        // Two panes need room for two of everything — header, composer
+        // and status bar each — so the window grows when the second is
+        // switched on rather than cramming both into a one-pane height.
+        .frame(minWidth: 900, minHeight: showSecond ? 780 : 520)
+        .navigationTitle("KST2Mac")
+        .navigationSubtitle(subtitle)
         .toolbar {
             ToolbarItem {
                 Toggle(isOn: $showSecond) {

@@ -392,6 +392,19 @@ exactly that and had to be undone.
 The name being a play on KST2Me's brings the shack credit rule into scope;
 the README now credits OZ2M.
 
+**2026-08-28, sixteenth pass — two-pane layout and title bar.** Using the
+stacked layout for real showed the split was wrong: `VSplitView` gave the
+first pane its ideal height and squeezed the second below its 260px
+minimum, where it was clipped and lost its Connect button. Both panes now
+carry `maxHeight: .infinity` so the space is shared, and the window's own
+minimum grows to 780 when the second pane is on — two panes need two of
+every chrome row (header, composer, status).
+
+The title bar said only the room name. It now reads `KST2Mac` as the title
+with `VU2CPL · Low Band` as the subtitle, which is where macOS expects the
+changing detail and keeps the app identifiable in Mission Control and the
+Window menu. With two panes the subtitle lists both rooms.
+
 ## Open items
 
 1. **Is the command rate limit per connection or per callsign?** With
