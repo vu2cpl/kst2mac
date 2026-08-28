@@ -24,6 +24,28 @@ public enum ChatRoom: Int, CaseIterable, Identifiable, Sendable {
 
     public var id: Int { rawValue }
 
+    /// The token `/CHAT` expects, for switching room without dropping the
+    /// connection. From the captured `/HELP`: "Values are 28 40 50 50R2
+    /// 50R3 144 144R2 144R3 GHZ EME HF KHZ WARC" — thirteen values for
+    /// thirteen rooms.
+    public var chatToken: String {
+        switch self {
+        case .fiftySeventy:  return "50"
+        case .vhfUhf:        return "144"
+        case .microwave:     return "GHZ"
+        case .eme:           return "EME"
+        case .lowBand:       return "HF"
+        case .fiftyRegion3:  return "50R3"
+        case .fiftyRegion2:  return "50R2"
+        case .vhfUhfRegion2: return "144R2"
+        case .vhfUhfRegion3: return "144R3"
+        case .kilohertz:     return "KHZ"
+        case .warc:          return "WARC"
+        case .twentyEight:   return "28"
+        case .forty:         return "40"
+        }
+    }
+
     public var title: String {
         switch self {
         case .fiftySeventy:  return "50 / 70 MHz"

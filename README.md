@@ -24,6 +24,7 @@ table with distance and beam heading from your own square.
 | Station table | done — populated from the server roster, refreshed every 60s |
 | User-list / roster parser | done — `/SHow USer`, prompt-delimited, unit-tested |
 | Scrollback backfill on join | done — `/SHOW MSG` |
+| Live room switching | done — `/CHAT`, no reconnect |
 | Chat message parser | done — verified against captured EU traffic (`HHMMZ CALL Name> …`) |
 | Away / present status | done — the roster brackets away operators |
 | HTML-escaped names | done — `Heinz 2 &amp; 4m` → `Heinz 2 & 4m` |
@@ -57,8 +58,13 @@ swift test
    service, not of this client.
 3. Launch, open Settings (⌘,), and set your callsign, your locator
    (e.g. `MK83`), and save the password to the Keychain.
-4. Pick a room from the toolbar and press Connect. From VU the ones you
-   want are **144 / 432 MHz IARU R3** (the default) and **50 MHz IARU R3**.
+4. Press Connect. The room picker defaults to **144 / 432 MHz** — the busy
+   European room. It stays live while connected, so switching room is one
+   click and no reconnect.
+
+   Note the region-3 rooms (**144 / 432 MHz IARU R3**, **50 MHz IARU R3**)
+   are usually empty — an empty station table there is the room, not a
+   fault.
 
 ## Safety note about sending
 

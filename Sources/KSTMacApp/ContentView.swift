@@ -21,8 +21,9 @@ struct ContentView: View {
                         Text(room.title).tag(room)
                     }
                 }
-                .disabled(model.isConnected)
-                .frame(width: 190)
+                .disabled(model.isConnected && !model.isInChat)
+                .frame(width: 210)
+                .help("Switches room in place while connected (/CHAT)")
             }
             ToolbarItem(placement: .primaryAction) {
                 Button(model.isConnected ? "Disconnect" : "Connect") {

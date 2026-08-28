@@ -160,7 +160,7 @@ The ones that matter for this client:
 | `/SHow USer` | **The roster.** This is what the station table needs. |
 | `/SHow MSG [nbr]` | Backfill scrollback on connect instead of starting blank. |
 | `/SHow LOC call` | Server-side QRB/QTF — a cross-check on our own Maidenhead maths. |
-| `/CHAT value` | Switch rooms without dropping the connection. |
+| `/CHAT value` | Switch rooms in place. Tokens: `28 40 50 50R2 50R3 144 144R2 144R3 GHZ EME HF KHZ WARC` — thirteen, one per menu digit. |
 | `/SET NAme`, `/SET QRA` | Push the operator's name and locator from Settings. |
 | `/SET HERE`, `/UNSET HERE` | Presence, for an away toggle. |
 | `/DX qrg call` | Spot to the inline CLX cluster. |

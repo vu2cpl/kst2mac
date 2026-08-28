@@ -416,3 +416,27 @@ final class HTMLTextTests: XCTestCase {
         XCTAssertEqual(HTMLText.decode("Manoj"), "Manoj")
     }
 }
+
+final class ChatRoomTests: XCTestCase {
+
+    /// `/HELP` lists exactly these thirteen values for /CHAT. Every room
+    /// must map to one of them, and no two rooms may share one.
+    func testChatTokensMatchTheCapturedHelpText() {
+        let documented = Set("28 40 50 50R2 50R3 144 144R2 144R3 GHZ EME HF KHZ WARC"
+            .split(separator: " ").map(String.init))
+        let tokens = ChatRoom.allCases.map(\.chatToken)
+
+        XCTAssertEqual(Set(tokens), documented)
+        XCTAssertEqual(tokens.count, Set(tokens).count, "two rooms share a /CHAT token")
+        XCTAssertEqual(ChatRoom.allCases.count, 13)
+    }
+
+    /// The menu digits are the ones transcribed from the live server —
+    /// note 6 exists, and the list runs to 13.
+    func testMenuDigits() {
+        XCTAssertEqual(ChatRoom.allCases.map(\.rawValue), Array(1...13))
+        XCTAssertEqual(ChatRoom.vhfUhf.rawValue, 2)
+        XCTAssertEqual(ChatRoom.vhfUhfRegion3.rawValue, 9)
+        XCTAssertEqual(ChatRoom.vhfUhfRegion3.chatToken, "144R3")
+    }
+}

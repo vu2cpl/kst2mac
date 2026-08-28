@@ -107,8 +107,9 @@ conn.rawMonitor = { chunk in
 
 note("Recording \(room.title) to \(outPath) for \(Int(seconds))s. Ctrl-C to stop early.")
 
+let events = conn.events    // claim the stream before connecting
 Task {
-    for await event in conn.events {
+    for await event in events {
         switch event {
         case .status(let s):        note("[\(s)]")
         case .loggedIn(let r):

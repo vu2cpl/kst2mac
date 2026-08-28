@@ -10,12 +10,24 @@ final class AppModel: ObservableObject {
     @AppStorage("homeGrid")  var homeGrid: String = ""
     @AppStorage("host")      var host: String = KSTConnection.defaultHost
     @AppStorage("port")      var port: Int = Int(KSTConnection.defaultPort)
-    @AppStorage("roomRaw")   var roomRaw: Int = ChatRoom.vhfUhfRegion3.rawValue
+    // Defaults to 144/432 MHz rather than the region-3 room: R3 is
+    // usually empty, and a first run that shows an empty window looks
+    // like a broken client rather than a quiet band.
+    @AppStorage("roomRaw")   var roomRaw: Int = ChatRoom.vhfUhf.rawValue
     @AppStorage("savePassword") var savePassword: Bool = true
 
     var room: ChatRoom {
-        get { ChatRoom(rawValue: roomRaw) ?? .vhfUhfRegion3 }
-        set { roomRaw = newValue.rawValue }
+        get { ChatRoom(rawValue: roomRaw) ?? .vhfUhf }
+        set {
+            guard newValue != room else { return }
+            roomRaw = newValue.rawValue
+            // While connected the server can move us with /CHAT, so the
+            // picker stays live rather than being locked until reconnect.
+            if isInChat {
+                stations = []
+                connection?.switchChat(to: newValue)
+            }
+        }
     }
 
     // MARK: Live state
@@ -59,8 +71,12 @@ final class AppModel: ObservableObject {
         isConnected = true
         isInChat = false
 
+        // Take the stream *before* connecting. `events` builds its
+        // continuation on first access, so if the socket got there first
+        // the early status events would be yielded into nothing.
+        let stream = conn.events
         pump = Task { [weak self] in
-            for await event in conn.events {
+            for await event in stream {
                 guard let self else { return }
                 self.handle(event)
             }

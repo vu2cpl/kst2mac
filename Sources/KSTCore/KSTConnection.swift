@@ -60,6 +60,9 @@ public final class KSTConnection: @unchecked Sendable {
     private var rosterBuffer: [Station] = []
 
     private var continuation: AsyncStream<KSTEvent>.Continuation?
+    /// Access this **before** calling `connect(_:)`. The continuation is
+    /// created on first access, so events emitted earlier have nowhere to
+    /// go and are silently dropped.
     public private(set) lazy var events: AsyncStream<KSTEvent> = {
         AsyncStream { self.continuation = $0 }
     }()
@@ -139,6 +142,20 @@ public final class KSTConnection: @unchecked Sendable {
                 return
             }
             self.write(trimmed)
+        }
+    }
+
+    /// Move to another chat without dropping the connection. The server
+    /// keeps the session; only the room changes.
+    public func switchChat(to newRoom: ChatRoom) {
+        queue.async {
+            guard self.phase == .inChat, newRoom != self.room else { return }
+            self.room = newRoom
+            self.expecting = .nothing
+            self.rosterBuffer = []
+            self.emit(.status("Switching to \(newRoom.title)…"))
+            self.write("/CHAT \(newRoom.chatToken)")
+            self.emit(.loggedIn(newRoom))
         }
     }
 

@@ -184,6 +184,24 @@ documentation and one written from the wire — the first five passes of
 this project were the former, and every one of them was wrong in a way
 only traffic could show.
 
+**2026-08-28, seventh pass — first real use.** Connecting to the app for
+the first time surfaced a UX bug no test would have caught: the room picker
+defaulted to 144/432 IARU **R3**, which is empty, and its title differs
+from the busy 144/432 room only by a suffix in a narrow picker. The
+operator believed they were in room 2 and were in room 9; the window looked
+broken when it was merely showing an empty room faithfully.
+
+Two changes. The default is now **144/432 MHz (room 2)** — a first run that
+shows an empty window reads as a broken client, and being regionally
+correct is worth less than being obviously working. And the picker is live
+while connected: changing it sends `/CHAT <token>` and the server moves the
+session without a reconnect, so a wrong choice costs one click instead of a
+full re-login. Tokens are asserted against the captured `/HELP` list.
+
+Lesson worth keeping: every protocol bug in this project was found by
+capturing traffic, and this one could only be found by *using* the app. Do
+both.
+
 ## Open items
 
 1. **Join/leave notices** — shape unknown, so the table only updates on
