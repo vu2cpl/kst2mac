@@ -43,6 +43,12 @@ struct ContentView: View {
         .background(.bar)
     }
 
+    /// Controls sit **left-aligned**, immediately after the picker.
+    ///
+    /// They were previously pushed to the right edge by a `Spacer`, which
+    /// worked for the first pane and clipped for every pane below it —
+    /// the close and float buttons simply were not there to be found. Put
+    /// on the left they cannot be pushed anywhere.
     private var header: some View {
         HStack(spacing: 8) {
             Rectangle()
@@ -63,23 +69,6 @@ struct ContentView: View {
             .frame(width: 210 * min(Typography.clamped(scale), 1.4))
             .help("Switches room in place while connected (/CHAT)")
 
-            Spacer()
-
-            if let onFloat {
-                Button(action: onFloat) {
-                    Image(systemName: "macwindow.badge.plus")
-                }
-                .buttonStyle(.borderless)
-                .help("Move this chat into its own window, keeping the connection")
-            }
-            if let onClose {
-                Button(action: onClose) {
-                    Image(systemName: "xmark.circle")
-                }
-                .buttonStyle(.borderless)
-                .help("Close this chat and disconnect it")
-            }
-
             Button(model.isConnected ? "Disconnect" : "Connect") {
                 if model.isConnected {
                     model.disconnect()
@@ -91,6 +80,24 @@ struct ContentView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(model.isConnected ? Palette.offline : Palette.connected)
+
+            if let onFloat {
+                Button("Float", systemImage: "macwindow.on.rectangle", action: onFloat)
+                    .help("Move this chat into its own window, keeping the connection")
+            }
+            if let onClose {
+                Button("Close", systemImage: "xmark", action: onClose)
+                    .help("Close this chat and disconnect it")
+            }
+
+            Spacer(minLength: 0)
+
+            if model.isInChat {
+                Text(model.room.title)
+                    .font(Typography.text(11, scale, weight: .medium))
+                    .foregroundStyle(stateColor)
+                    .lineLimit(1)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)

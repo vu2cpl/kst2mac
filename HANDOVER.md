@@ -466,6 +466,26 @@ existing two-pane window came back with one pane and the operator's setup
 was silently lost. Changing a scene's identity discards its restoration
 data — say so before shipping such a change.
 
+**2026-08-28, nineteenth pass — the invisible close button.** With three
+panes open, only the *first* showed Connect, Float and Close; every pane
+below it showed the room picker and nothing else. The controls were being
+positioned by a `Spacer()` against the right edge, which held for the top
+pane and clipped for the rest — so the close button the operator was
+looking for genuinely was not there.
+
+Controls are now **left-aligned immediately after the picker**, where
+nothing can push them off. The room name moved to the right of the header
+instead, since it is the part that can be truncated harmlessly.
+
+Lesson: a `Spacer`-positioned control is a control that can vanish. In a
+stacked layout, put actions on the left and let the decoration take the
+squeeze.
+
+Note for anyone repeating the rename: the migrated Keychain item is still
+owned by the previous app identity, so macOS prompts once on first use
+("KST2Mac wants to use your confidential information…"). Always Allow
+settles it.
+
 ## Open items
 
 1. **Is the command rate limit per connection or per callsign?** With
