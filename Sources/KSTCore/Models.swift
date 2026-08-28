@@ -93,14 +93,18 @@ public struct Station: Identifiable, Sendable, Equatable {
     public var locator: String?
     /// Free-text status/comment the operator set, when the server gives one.
     public var status: String?
+    /// The roster brackets the callsign of an operator who has said they
+    /// are away from the terminal (`/UNSET HERE`).
+    public var isAway: Bool
     public var lastHeard: Date
 
     public init(callsign: String, name: String? = nil, locator: String? = nil,
-                status: String? = nil, lastHeard: Date = Date()) {
+                status: String? = nil, isAway: Bool = false, lastHeard: Date = Date()) {
         self.callsign = callsign
         self.name = name
         self.locator = locator
         self.status = status
+        self.isAway = isAway
         self.lastHeard = lastHeard
     }
 }

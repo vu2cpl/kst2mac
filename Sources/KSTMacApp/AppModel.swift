@@ -156,7 +156,12 @@ final class AppModel: ObservableObject {
                 merged.locator = fresh.locator ?? known.locator
                 return merged
             }
-            .sorted { $0.callsign < $1.callsign }
+            .sorted { a, b in
+                // Operators at their terminal first — they are the ones
+                // you can actually raise a sked with.
+                if a.isAway != b.isAway { return !a.isAway }
+                return a.callsign < b.callsign
+            }
 
         case .disconnected(let reason):
             isConnected = false

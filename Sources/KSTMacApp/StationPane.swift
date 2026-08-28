@@ -11,9 +11,19 @@ struct StationPane: View {
         VStack(alignment: .leading, spacing: 0) {
             Table(model.stations, selection: $selection) {
                 TableColumn("Call") { s in
-                    Text(s.callsign).font(.system(.body, design: .monospaced))
+                    HStack(spacing: 4) {
+                        Text(s.callsign)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundStyle(s.isAway ? .secondary : .primary)
+                        if s.isAway {
+                            Image(systemName: "moon.zzz")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .help("Away from the terminal")
+                        }
+                    }
                 }
-                .width(min: 78)
+                .width(min: 92)
 
                 TableColumn("Name") { s in
                     Text(s.name ?? "").foregroundStyle(.secondary)
@@ -45,7 +55,7 @@ struct StationPane: View {
 
             Divider()
             HStack {
-                Text("\(model.stations.count) present")
+                Text("\(model.stations.filter { !$0.isAway }.count) here, \(model.stations.count) listed")
                     .font(.caption).foregroundStyle(.secondary)
                 Button {
                     model.refreshRoster()

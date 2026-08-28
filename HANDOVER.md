@@ -1,7 +1,7 @@
 # KST Mac — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.2 — login and roster working; message format still unseen
+**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.3 — login, roster and message parsing all verified against live traffic
 
 ---
 
@@ -25,9 +25,11 @@ highlighting, composer with `/CQ` directed messages, station table with
 distance + bearing from the operator's locator, password in Keychain,
 room + host + port in Settings.
 
-**Not working yet:** the station table is populated from chat traffic only
-— it shows who has *spoken*, not who is *present*. That needs the server's
-roster command, whose format is unverified.
+**Verified against live traffic:** login handshake, chat menu, roster
+(`/SHow USer`), command set, message lines, the command prompt, away
+status, HTML-escaped names. `docs/PROTOCOL.md` marks what is captured
+versus inferred — keep that distinction honest, it has caught real bugs
+four times now.
 
 ## Architecture notes worth keeping
 
@@ -148,18 +150,47 @@ one station in it — VU2CPL. `/SHOW MSG 15` returned nothing because that
 room has no history. Nothing was ever wrong with the room choice; R3 is
 just empty.
 
-Still open, and now the only protocol unknown: **no chat message line has
-ever been captured.** Probe room 2 (144/432 EU) during the EU evening or
-room 4 (EME); `/SHOW MSG 15` there returns real messages even in silence.
+**2026-08-28, sixth pass — the message format, at last.** A capture in
+room 2 (144/432 EU, ~60 stations) produced real traffic, and it broke the
+parser in three ways at once.
+
+The big one: **the stamp is `HHMMZ`**, e.g. `0846Z`. Every write-up gives
+it as just "TIME". The parser had been accepting `2115` and `21:15` — both
+invented — and matched neither `0846Z` nor anything else the server sends,
+so it was classifying *every real message* as unrecognised text. It had
+never once parsed a genuine chat line. Both speculative forms are still
+tolerated (free, harmless) but the tests now say in as many words that
+they have never been observed, so nobody cites them as protocol facts.
+
+Also from that capture:
+
+- The `>` hangs off the **end of the name** with no space, and the name
+  carries station notes: `Jens 2m>`, `Paolo 2-70-23-13>`, `Bert  2/70>`
+  (double space inside the name). Message text can start with a hyphen.
+- **Parenthesised roster callsigns mean the operator is away** from the
+  terminal (`/UNSET HERE`) — `(DF7KF)`. They stay listed. Now
+  `Station.isAway`; the table sorts present operators first and marks the
+  rest.
+- Callsigns carry `/P` and `-N` suffixes — `F6IFX/P`, `DN9APW-2`. The
+  roster callsign pattern rejected the hyphen form outright.
+- **Names are HTML-escaped**: `Heinz 2 &amp; 4m`, `Andy &#8482;`. Decoded
+  by a hand-rolled `HTMLText` rather than `NSAttributedString(html:)`,
+  which would drag in WebKit and require the main thread to unescape a
+  name on a socket queue.
+
+Seventeen tests now assert against lines copied verbatim from that
+capture. That is the difference between a parser written from
+documentation and one written from the wire — the first five passes of
+this project were the former, and every one of them was wrong in a way
+only traffic could show.
 
 ## Open items
 
-1. **Capture a real message line** — `swift run KSTCapture --call VU2CPL
-   --room 2 --seconds 120 --probe` during the EU evening. The R3 chat is
-   empty, so it can never supply one. This is the last protocol unknown.
-2. **Confirm the message-line format** — `21:15` or `2115`. The parser
-   accepts both; narrow it once known.
-3. **Join/leave notices** so the table updates between roster polls.
+1. **Join/leave notices** — shape unknown, so the table only updates on
+   the 60s roster poll. Needs a longer capture.
+2. **`/SHow DX` spot format**, if spots are ever surfaced. They arrive
+   disabled (`DX OFF, ANN OFF, WWC OFF` from `/SHow CONFig`), which is
+   why no capture has contained one.
 4. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs
    it automatically if present.
 5. Not yet decided: notarisation (`notarize.sh`, as in the sibling Mac

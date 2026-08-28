@@ -10,7 +10,7 @@ prior art).
 
 ## Status
 
-**v0.2 — working chat client.** Connects, logs in, joins a room, shows the
+**v0.3 — working chat client.** Connects, logs in, joins a room, shows the
 traffic, sends messages and `/CQ` directed messages, and builds a station
 table with distance and beam heading from your own square.
 
@@ -24,7 +24,9 @@ table with distance and beam heading from your own square.
 | Station table | done — populated from the server roster, refreshed every 60s |
 | User-list / roster parser | done — `/SHow USer`, prompt-delimited, unit-tested |
 | Scrollback backfill on join | done — `/SHOW MSG` |
-| Chat message parser | **unverified** — no real message line has been captured yet |
+| Chat message parser | done — verified against captured EU traffic (`HHMMZ CALL Name> …`) |
+| Away / present status | done — the roster brackets away operators |
+| HTML-escaped names | done — `Heinz 2 &amp; 4m` → `Heinz 2 & 4m` |
 | Map view | not planned for v0.1 |
 
 ## Build and run
@@ -85,12 +87,15 @@ docs/PROTOCOL.md       what's verified vs inferred about the protocol
 
 ## Next step
 
-The station table is the weak half: it currently lists who has *spoken*,
-not who is *present*, because the server's user-list command and its column
-format haven't been confirmed. Record a transcript —
+The protocol layer is now verified against live traffic rather than
+written from documentation — see [docs/PROTOCOL.md](docs/PROTOCOL.md) for
+what is captured versus what is still inferred. The remaining unknowns are
+join/leave notices and the `/SHow DX` spot format.
+
+To capture more, record a transcript —
 
 ```bash
-swift run KSTCapture --call VU2CPL --room 9 --seconds 120 --probe
+swift run KSTCapture --call VU2CPL --room 2 --seconds 120 --probe
 ```
 
 — and the roster parser can be written against real bytes. `--probe` runs

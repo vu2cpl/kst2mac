@@ -169,10 +169,31 @@ The ones that matter for this client:
 
 ```
 VU2CPL           MK83TE Manoj
+(DF7KF)          JO30FK Dithmar
+DN9APW-2         JO50LQ TESTING
+F6IFX/P          IN87XC Bert  2/70
+DL6BF            JO32QI Heinz 2 &amp; 4m
+GD0TEP           IO74SD Andy &#8482;
+(F1NZC)          JN15MR Jean-Louis JN15
 |<--- 17 cols --->|
 ```
 
 Callsign left-justified in a 17-character field, then locator, then name.
+
+Three things a single-station room could not reveal, all found in the
+144/432 EU capture:
+
+- **A callsign in parentheses means the operator is away** from the
+  terminal (`/UNSET HERE`). They stay listed, so this is a property of the
+  row — `Station.isAway` — not a reason to drop it. The table sorts
+  present operators first and marks the rest.
+- Callsigns carry `/P` and `-N` suffixes (`F6IFX/P`, `DN9APW-2`).
+- **Names are HTML-escaped**: `Heinz 2 &amp; 4m`, `Andy &#8482;`. Decoded
+  by `HTMLText`, which is hand-rolled rather than
+  `NSAttributedString(html:)` — that would pull in WebKit and demand the
+  main thread to unescape a name field on a socket queue.
+- A name may end in something locator-shaped (`Jean-Louis JN15`), so only
+  the field immediately after the callsign is treated as the locator.
 
 **Field order is command-specific.** `/SHow CONFig` prints the same three
 values in a different order:
@@ -193,14 +214,34 @@ Columns are parsed by splitting on whitespace and identifying the locator
 by shape, not by fixed offset — the single captured row has a short
 callsign in it, and `SV1DH/P` would overrun the field.
 
-## Message format
+## Message format — verified 2026-08-28 (144/432 EU)
 
 ```
-TIME FROMCALLSIGN FROMNAME > (TOCALLSIGN) MESSAGETEXT
+0846Z OZ5QF Jens 2m> (F6IFX/P)  Tnx qso Bert. Best 340/5 73
+0844Z SM5DWF Peder 2m> 160/1
+0845Z F6IFX/P Bert  2/70>  tnx fast qso 73 Jens
+0836Z YO7CGS Dumitru> - 083430, copy rrrr 420/5db. Tnx, Luigi! 73!
+0831Z IK7UXW Paolo 2-70-23-13> stop cq cul tnx
 ```
 
-The `(TOCALLSIGN)` group appears only on a directed message, which is sent
-with `/CQ CALL text`. `/HELP` lists the command set.
+    HHMMZ FROMCALL Name> [(TOCALL)]  text
+
+- The stamp is `HHMM` **followed by `Z`** — UTC. Second-hand write-ups
+  give it as just "TIME". An earlier revision of this parser accepted
+  `2115` and `21:15` but not `0846Z`, so it classified **every** real
+  message as unrecognised text. The parser still tolerates the other two
+  forms; neither has ever been observed, and the tests say so.
+- The `>` hangs off the **end of the name** with no space before it, and
+  the name routinely carries station notes: `Jens 2m>`,
+  `Paolo 2-70-23-13>`, `Bert  2/70>` — that last one has a double space
+  inside the name.
+- `(TOCALL)` appears only on a directed `/CQ` message; the text starts two
+  spaces after it.
+- Message text may begin with a hyphen.
+- Sender callsigns carry `/P` and `-N` suffixes.
+- The command prompt has the same shape and must be matched first.
+
+Message text and names are **HTML-escaped** — see the roster note below.
 
 ## The one rule that shapes the client
 
@@ -232,17 +273,7 @@ publish it.
 
 Open questions the transcript answers:
 
-1. **Message-line format — the last unknown.** Still no chat message has
-   ever been captured. `/SHOW MSG 15` in the R3 chat returned nothing at
-   all, because that room has no history and, at the time of capture,
-   exactly one station in it. The command prompt uses `HHMMZ`, so `HHMM`
-   is the better guess of the two forms `LineParser` accepts — inference,
-   not evidence.
-
-   To settle it, probe a room that has traffic: `--room 2` (144/432 EU)
-   during the European evening, or `--room 4` (EME). `/SHOW MSG 15` there
-   will return real message lines even if nobody is speaking at that
-   moment.
+1. ~~Message-line format~~ — captured, see above.
 2. ~~Locator source~~ — `/SHow USer` carries the locator directly.
 4. **Join/leave notices** — their shape, so the roster can age out.
 4. ~~The full `/HELP` command set~~ — captured, see above.

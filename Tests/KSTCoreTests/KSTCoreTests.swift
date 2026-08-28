@@ -52,8 +52,11 @@ final class LineParserTests: XCTestCase {
 
     private let parser = LineParser()
 
-    /// The stamp may arrive bare rather than colon-separated; both forms
-    /// must parse to the same message.
+    /// Tolerated variants, **not observed**. Live traffic always uses
+    /// `HHMMZ` (see CapturedTrafficTests, which is the evidence). These
+    /// two forms are accepted because doing so is free, not because the
+    /// server has ever been seen to send them — don't cite them as
+    /// protocol facts.
     func testParsesBareTimestamp() {
         let line = parser.parse("2134 ON4KST Rik > anyone on 3cm tonight?")
         guard case .message(let from, let name, let to, let text) = line.kind else {
@@ -66,6 +69,7 @@ final class LineParserTests: XCTestCase {
         XCTAssertEqual(line.stamp, "2134")
     }
 
+    /// Also a tolerated variant, not observed. See above.
     func testParsesTimestampedMessage() {
         let line = parser.parse("21:15 G4XYZ Dave > cq cq on 144.300")
         guard case .message(let from, let name, let to, let text) = line.kind else {
@@ -273,5 +277,142 @@ final class RosterParserTests: XCTestCase {
         XCTAssertEqual(LineParser.normalisedLocator("JO20"), "JO20")
         XCTAssertNil(LineParser.normalisedLocator("MK83TExx"))
         XCTAssertNil(LineParser.normalisedLocator("Manoj"))
+    }
+}
+
+/// Every line below is copied verbatim from a 144/432 EU capture on
+/// 2026-08-28. Before that capture the parser had never seen a real
+/// message and got the timestamp wrong, so it classified all of them as
+/// unrecognised text.
+final class CapturedTrafficTests: XCTestCase {
+
+    private let parser = LineParser()
+
+    func testDirectedMessage() throws {
+        let line = parser.parse("0846Z OZ5QF Jens 2m> (F6IFX/P)  Tnx qso Bert. Best 340/5 73")
+        guard case .message(let from, let name, let to, let text) = line.kind else {
+            return XCTFail("expected a message, got \(line.kind)")
+        }
+        XCTAssertEqual(line.stamp, "0846Z")
+        XCTAssertEqual(from, "OZ5QF")
+        XCTAssertEqual(name, "Jens 2m")        // the name carries station notes
+        XCTAssertEqual(to, "F6IFX/P")
+        XCTAssertEqual(text, "Tnx qso Bert. Best 340/5 73")
+    }
+
+    func testUndirectedMessage() throws {
+        let line = parser.parse("0844Z SM5DWF Peder 2m> 160/1")
+        guard case .message(let from, _, let to, let text) = line.kind else {
+            return XCTFail("expected a message")
+        }
+        XCTAssertEqual(from, "SM5DWF")
+        XCTAssertNil(to)
+        XCTAssertEqual(text, "160/1")
+    }
+
+    /// A portable callsign, and a name with a double space inside it.
+    func testPortableCallsignSender() throws {
+        let line = parser.parse("0845Z F6IFX/P Bert  2/70>  tnx fast qso 73 Jens")
+        guard case .message(let from, let name, _, let text) = line.kind else {
+            return XCTFail("expected a message")
+        }
+        XCTAssertEqual(from, "F6IFX/P")
+        XCTAssertEqual(name, "Bert  2/70")
+        XCTAssertEqual(text, "tnx fast qso 73 Jens")
+    }
+
+    /// Message text starting with a hyphen must not be eaten as a flag.
+    func testTextBeginningWithHyphen() throws {
+        let line = parser.parse("0836Z YO7CGS Dumitru> - 083430, copy rrrr 420/5db. Tnx, Luigi! 73!")
+        guard case .message(let from, let name, _, let text) = line.kind else {
+            return XCTFail("expected a message")
+        }
+        XCTAssertEqual(from, "YO7CGS")
+        XCTAssertEqual(name, "Dumitru")
+        XCTAssertTrue(text.hasPrefix("- 083430"), "got \(text)")
+    }
+
+    /// A name full of digits and hyphens must not be mistaken for anything.
+    func testNameWithDigitsAndHyphens() throws {
+        let line = parser.parse("0831Z IK7UXW Paolo 2-70-23-13> stop cq cul tnx")
+        guard case .message(_, let name, _, let text) = line.kind else {
+            return XCTFail("expected a message")
+        }
+        XCTAssertEqual(name, "Paolo 2-70-23-13")
+        XCTAssertEqual(text, "stop cq cul tnx")
+    }
+
+    /// The command prompt is the same shape as a message and must win.
+    func testPromptIsNotAMessage() throws {
+        let line = parser.parse("0846Z VU2CPL 144/432 MHz chat>")
+        guard case .prompt(let call, let chat) = line.kind else {
+            return XCTFail("expected a prompt, got \(line.kind)")
+        }
+        XCTAssertEqual(call, "VU2CPL")
+        XCTAssertEqual(chat, "144/432 MHz")
+        XCTAssertEqual(line.stamp, "0846")
+    }
+
+    // MARK: Roster rows from the same capture
+
+    func testAwayStationIsBracketed() throws {
+        let s = try XCTUnwrap(RosterParser.parse("(DF7KF)          JO30FK Dithmar"))
+        XCTAssertEqual(s.callsign, "DF7KF")
+        XCTAssertTrue(s.isAway)
+        XCTAssertEqual(s.locator, "JO30fk")
+        XCTAssertEqual(s.name, "Dithmar")
+    }
+
+    func testPresentStationIsNotAway() throws {
+        let s = try XCTUnwrap(RosterParser.parse("DL1BEC           JO33SC Achim"))
+        XCTAssertFalse(s.isAway)
+    }
+
+    func testSSIDSuffixCallsign() throws {
+        let s = try XCTUnwrap(RosterParser.parse("DN9APW-2         JO50LQ TESTING"))
+        XCTAssertEqual(s.callsign, "DN9APW-2")
+        XCTAssertEqual(s.name, "TESTING")
+    }
+
+    func testPortableSuffixCallsign() throws {
+        let s = try XCTUnwrap(RosterParser.parse("F6IFX/P          IN87XC Bert  2/70"))
+        XCTAssertEqual(s.callsign, "F6IFX/P")
+        XCTAssertEqual(s.name, "Bert 2/70")
+    }
+
+    func testNamesAreHTMLUnescaped() throws {
+        let amp = try XCTUnwrap(RosterParser.parse("DL6BF            JO32QI Heinz 2 &amp; 4m"))
+        XCTAssertEqual(amp.name, "Heinz 2 & 4m")
+        let tm = try XCTUnwrap(RosterParser.parse("GD0TEP           IO74SD Andy &#8482;"))
+        XCTAssertEqual(tm.name, "Andy ™")
+    }
+
+    /// A name whose trailing token looks like a locator must not have it
+    /// stolen — only the field immediately after the callsign is one.
+    func testTrailingGridInNameIsLeftAlone() throws {
+        let s = try XCTUnwrap(RosterParser.parse("(F1NZC)          JN15MR Jean-Louis JN15"))
+        XCTAssertEqual(s.locator, "JN15mr")
+        XCTAssertEqual(s.name, "Jean-Louis JN15")
+    }
+}
+
+final class HTMLTextTests: XCTestCase {
+    func testNamedEntities() {
+        XCTAssertEqual(HTMLText.decode("Heinz 2 &amp; 4m"), "Heinz 2 & 4m")
+        XCTAssertEqual(HTMLText.decode("a &lt;b&gt; c"), "a <b> c")
+    }
+    func testNumericEntities() {
+        XCTAssertEqual(HTMLText.decode("Andy &#8482;"), "Andy ™")
+        XCTAssertEqual(HTMLText.decode("&#x2122;"), "™")
+    }
+    func testBareAmpersandSurvives() {
+        XCTAssertEqual(HTMLText.decode("Jack & Jill"), "Jack & Jill")
+        XCTAssertEqual(HTMLText.decode("R&D"), "R&D")
+    }
+    func testUnknownEntityIsLeftIntact() {
+        XCTAssertEqual(HTMLText.decode("&zzz; x"), "&zzz; x")
+    }
+    func testPlainStringIsUntouched() {
+        XCTAssertEqual(HTMLText.decode("Manoj"), "Manoj")
     }
 }

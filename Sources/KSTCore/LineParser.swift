@@ -4,13 +4,23 @@ import Foundation
 ///
 /// The documented chat-message shape is
 ///
-///     HH:MM FROMCALL FromName > (TOCALL) message text
+///     0846Z OZ5QF Jens 2m> (F6IFX/P)  Tnx qso Bert. Best 340/5 73
+///     0844Z SM5DWF Peder 2m> 160/1
 ///
-/// with the `(TOCALL)` part present only for a directed `/CQ` message.
-/// The leading stamp is accepted both colon-separated (`21:15`) and bare
-/// (`2115`) — the second-hand format documentation writes it only as
-/// "TIME", and which one the server actually sends is one of the things
-/// the KSTCapture transcript settles.
+/// Captured 2026-08-28 from the 144/432 EU chat. Points worth noting,
+/// all of which the second-hand documentation got wrong or omitted:
+///
+/// - The stamp is `HHMM` **followed by `Z`** — UTC. Written up elsewhere
+///   as just "TIME"; an earlier revision of this parser accepted `2115`
+///   and `21:15` but not `0846Z`, so it classified *every* real message
+///   as unrecognised.
+/// - The `>` hangs off the end of the name with no space before it, and
+///   the name routinely carries station notes: `Jens 2m>`,
+///   `Paolo 2-70-23-13>`, `Bert  2/70>` (with a double space inside it).
+/// - `(TOCALL)` appears only on a directed `/CQ` message, and the text
+///   after it starts two spaces later.
+/// - Message text can begin with a hyphen, so it must not be mistaken
+///   for a flag.
 /// Everything else the server emits — the login banner, the chat menu,
 /// join/leave notices, `/HELP` output, the user list — is passed through
 /// unclassified as `.other` with `raw` intact. That is deliberate: the
@@ -20,7 +30,7 @@ import Foundation
 public struct LineParser {
 
     private static let message = try! NSRegularExpression(
-        pattern: #"^\s*(\d{1,2}:\d{2}(?::\d{2})?|\d{4})\s+([A-Z0-9/\-]{3,})\s+(.*?)\s*>\s*(?:\(([A-Z0-9/\-]+)\)\s*)?(.*)$"#,
+        pattern: #"^\s*(\d{4}Z?|\d{1,2}:\d{2}(?::\d{2})?Z?)\s+([A-Z0-9/\-]{3,})\s+(.*?)\s*>\s*(?:\(([A-Z0-9/\-]+)\)\s*)?(.*)$"#,
         options: [.caseInsensitive]
     )
 
@@ -70,9 +80,9 @@ public struct LineParser {
         return KSTLine(
             raw: raw,
             kind: .message(from: from.uppercased(),
-                           name: group(3),
+                           name: group(3).map(HTMLText.decode),
                            to: group(4)?.uppercased(),
-                           text: group(5) ?? ""),
+                           text: HTMLText.decode(group(5) ?? "")),
             stamp: stamp
         )
     }
