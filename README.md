@@ -25,6 +25,7 @@ table with distance and beam heading from your own square.
 | User-list / roster parser | done — `/SHow USer`, prompt-delimited, unit-tested |
 | Scrollback backfill on join | done — `/SHOW MSG` |
 | Live room switching | done — `/CHAT`, no reconnect |
+| Command rate limiting | done — server allows ~1/min; app never spends your budget unasked |
 | Chat message parser | done — verified against captured EU traffic (`HHMMZ CALL Name> …`) |
 | Away / present status | done — the roster brackets away operators |
 | HTML-escaped names | done — `Heinz 2 &amp; 4m` → `Heinz 2 & 4m` |

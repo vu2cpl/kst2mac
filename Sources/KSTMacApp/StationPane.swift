@@ -55,8 +55,11 @@ struct StationPane: View {
 
             Divider()
             HStack {
-                Text("\(model.stations.filter { !$0.isAway }.count) here, \(model.stations.count) listed")
-                    .font(.caption).foregroundStyle(.secondary)
+                Text(model.stationsAreStale
+                     ? "previous room — asking…"
+                     : "\(model.stations.filter { !$0.isAway }.count) here, \(model.stations.count) listed")
+                    .font(.caption)
+                    .foregroundStyle(model.stationsAreStale ? .orange : .secondary)
                 Button {
                     model.refreshRoster()
                 } label: {

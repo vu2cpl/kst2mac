@@ -440,3 +440,37 @@ final class ChatRoomTests: XCTestCase {
         XCTAssertEqual(ChatRoom.vhfUhfRegion3.chatToken, "144R3")
     }
 }
+
+/// The server answers a too-soon command with a wait notice. It is the
+/// authority on when the next one may go out, so the client parses it
+/// rather than relying on its own estimate.
+final class RateLimitNoticeTests: XCTestCase {
+
+    private let parser = LineParser()
+
+    /// Captured verbatim.
+    func testCapturedNotice() {
+        XCTAssertEqual(ServerNotice.waitSeconds(in: "Please wait 55 second(s) between two commands."), 55)
+    }
+
+    func testSingularAndOtherDelays() {
+        XCTAssertEqual(ServerNotice.waitSeconds(in: "Please wait 1 second between two commands."), 1)
+        XCTAssertEqual(ServerNotice.waitSeconds(in: "please wait 12 seconds"), 12)
+    }
+
+    /// The notice must be anchored: an operator saying this in the chat is
+    /// a message, and the connection only tests non-message lines anyway.
+    func testMessageTextIsNotANotice() {
+        let line = "0846Z OZ5QF Jens 2m> please wait 30 seconds, turning the beam"
+        guard case .message = parser.parse(line).kind else {
+            return XCTFail("expected a message — the throttle would eat it")
+        }
+        XCTAssertNil(ServerNotice.waitSeconds(in: line),
+                     "unanchored match would let chat text reconfigure the throttle")
+    }
+
+    func testOrdinaryLinesAreNotNotices() {
+        XCTAssertNil(ServerNotice.waitSeconds(in: "Welcome Manoj VU2CPL on this 144/432 MHz amateur chat"))
+        XCTAssertNil(ServerNotice.waitSeconds(in: "Please wait for the sked"))
+    }
+}

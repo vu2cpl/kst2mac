@@ -52,6 +52,20 @@ public final class KSTConnection: @unchecked Sendable {
     /// end in a newline and so never surface as `KSTLine`s.
     public var rawMonitor: (@Sendable (String) -> Void)?
 
+    /// The server allows roughly one command per minute and answers a
+    /// too-soon one with "Please wait N second(s) between two commands."
+    ///
+    /// The rule this enforces: **the app never spends the operator's
+    /// command budget without being asked.** Anything the operator types
+    /// goes out immediately — they are watching, and they will see any
+    /// refusal. Only the app's own housekeeping (roster polls, backlog
+    /// fetches) is queued and throttled, and it always yields to a
+    /// user-initiated command.
+    private static let commandInterval: TimeInterval = 60
+    private var nextCommandAllowed = Date.distantPast
+    private var queuedCommands: [String] = []
+    private var drainScheduled = false
+
     /// Which command's output we are currently reading. The server has no
     /// markers around command replies, but it reprints its prompt when one
     /// ends — so the prompt is the delimiter.
@@ -87,6 +101,9 @@ public final class KSTConnection: @unchecked Sendable {
             self.accumulator = LineAccumulator()
             self.expecting = .nothing
             self.rosterBuffer = []
+            self.queuedCommands = []
+            self.drainScheduled = false
+            self.nextCommandAllowed = .distantPast
             self.responding = false
             self.phase = .connecting
 
@@ -154,6 +171,7 @@ public final class KSTConnection: @unchecked Sendable {
             self.expecting = .nothing
             self.rosterBuffer = []
             self.emit(.status("Switching to \(newRoom.title)…"))
+            self.queuedCommands = []          // stale: they were for the old room
             self.write("/CHAT \(newRoom.chatToken)")
             self.emit(.loggedIn(newRoom))
         }
@@ -161,21 +179,32 @@ public final class KSTConnection: @unchecked Sendable {
 
     /// Ask the server who is present. The reply arrives as `.line`s of
     /// kind `.roster` and is closed by a `.rosterComplete` event.
-    public func requestRoster() {
+    /// - Parameter userInitiated: `true` when the operator asked for it
+    ///   (the refresh button), which sends immediately; `false` for the
+    ///   periodic poll, which waits its turn.
+    public func requestRoster(userInitiated: Bool = false) {
         queue.async {
             guard self.phase == .inChat else { return }
             self.expecting = .roster
             self.rosterBuffer = []
-            self.write("/SHOW USER")
+            if userInitiated {
+                self.write("/SHOW USER")
+            } else {
+                self.enqueueHousekeeping("/SHOW USER")
+            }
         }
     }
 
     /// Ask for the last `count` chat messages, to backfill the log on join
     /// rather than starting from an empty window.
-    public func requestBacklog(_ count: Int = 15) {
+    public func requestBacklog(_ count: Int = 15, userInitiated: Bool = false) {
         queue.async {
             guard self.phase == .inChat else { return }
-            self.write("/SHOW MSG \(count)")
+            if userInitiated {
+                self.write("/SHOW MSG \(count)")
+            } else {
+                self.enqueueHousekeeping("/SHOW MSG \(count)")
+            }
         }
     }
 
@@ -187,7 +216,36 @@ public final class KSTConnection: @unchecked Sendable {
         send("/CQ \(call) \(text)")
     }
 
+    /// Queue a command the *app* wants to run. Deferred until the server
+    /// will accept it, deduplicated, and dropped if we leave the chat.
+    private func enqueueHousekeeping(_ command: String) {
+        guard !queuedCommands.contains(command) else { return }
+        queuedCommands.append(command)
+        scheduleDrain()
+    }
+
+    private func scheduleDrain() {
+        guard !drainScheduled, !queuedCommands.isEmpty else { return }
+        drainScheduled = true
+        let delay = max(0, nextCommandAllowed.timeIntervalSinceNow)
+        queue.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self else { return }
+            self.drainScheduled = false
+            guard self.phase == .inChat, !self.queuedCommands.isEmpty else {
+                self.queuedCommands = []
+                return
+            }
+            self.write(self.queuedCommands.removeFirst())
+            self.scheduleDrain()
+        }
+    }
+
     private func write(_ line: String) {
+        // Any command — ours or the operator's — starts the server's
+        // cooling-off window, so our own queue must respect it too.
+        if line.hasPrefix("/") {
+            nextCommandAllowed = Date().addingTimeInterval(Self.commandInterval)
+        }
         guard let data = (line + "\r\n").data(using: .utf8) else { return }
         connection?.send(content: data, completion: .contentProcessed { [weak self] error in
             if let error { self?.emit(.status("Send failed: \(error.localizedDescription)")) }
@@ -238,6 +296,18 @@ public final class KSTConnection: @unchecked Sendable {
 
     private func handle(line raw: String) {
         var parsed = parser.parse(raw)
+
+        // The server telling us to slow down is the authority on when the
+        // next command may go out — believe it over our own estimate.
+        // Checked only against lines that are *not* chat traffic, so an
+        // operator typing "please wait 30 seconds" stays a message.
+        if case .other = parsed.kind, let seconds = ServerNotice.waitSeconds(in: raw) {
+            nextCommandAllowed = Date().addingTimeInterval(seconds + 2)
+            emit(.status("Server asked us to wait \(Int(seconds))s before the next command"))
+            scheduleDrain()
+            emit(.line(KSTLine(raw: raw, kind: .local)))
+            return
+        }
 
         // The prompt closes whatever command reply was in flight.
         if case .prompt = parsed.kind {

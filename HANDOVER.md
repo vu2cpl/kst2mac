@@ -202,6 +202,37 @@ Lesson worth keeping: every protocol bug in this project was found by
 capturing traffic, and this one could only be found by *using* the app. Do
 both.
 
+**2026-08-28, eighth pass — the command rate limit.** Running the app
+against a busy room surfaced the biggest behavioural bug yet, and one no
+transcript could have shown:
+
+```
+Please wait 55 second(s) between two commands.
+```
+
+The server accepts about **one command per minute**. The app was firing
+`/SHOW MSG` and `/SHOW USER` 1.5s apart on join and polling the roster
+every 60s, so most were refused — the station table sat empty — and worse,
+the app was spending the operator's command budget on its own housekeeping,
+which can block a command they actually type.
+
+The rule now: **never spend the operator's command budget without being
+asked.** Operator input goes out immediately (they are watching, and will
+see a refusal); the app's own commands are queued, deduplicated, throttled
+to one a minute, and cleared on room switch or disconnect. One command on
+join, roster polling at five minutes, `/SHOW MSG` demoted to a button that
+says in its tooltip what it costs.
+
+The wait notice is parsed and believed over our own estimate — but
+**anchored, and only tested against lines that did not parse as chat**. An
+earlier version of that check ran before message parsing, so an operator
+typing "please wait 30 seconds, turning the beam" would have been swallowed
+as a rate-limit notice and never shown. There is a test for exactly that.
+
+Also: a room switch no longer blanks the station table. With a rate limit,
+the replacement roster can be a minute away, and an empty table reads as
+"nobody here" rather than "asking" — it now stays visible and marked.
+
 ## Open items
 
 1. **Join/leave notices** — shape unknown, so the table only updates on

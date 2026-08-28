@@ -24,7 +24,10 @@ final class AppModel: ObservableObject {
             // While connected the server can move us with /CHAT, so the
             // picker stays live rather than being locked until reconnect.
             if isInChat {
-                stations = []
+                // Keep the old list visible and marked stale: the
+                // replacement roster may be a minute away, and an empty
+                // table reads as "nobody here" rather than "asking".
+                stationsAreStale = true
                 connection?.switchChat(to: newValue)
             }
         }
@@ -38,6 +41,9 @@ final class AppModel: ObservableObject {
     @Published private(set) var isInChat = false
     /// The server's own UTC clock, from its command prompt.
     @Published private(set) var serverTime: String = ""
+    /// Set when the roster belongs to a room we have just left, until the
+    /// replacement arrives.
+    @Published private(set) var stationsAreStale = false
 
     /// The message being composed. Nothing leaves the app until the
     /// operator presses Return — the chat has no draft state, so an
@@ -84,21 +90,29 @@ final class AppModel: ObservableObject {
         conn.connect(username: callsign, password: password, room: room)
     }
 
-    /// Ask the server who is present. Safe to call at any time; ignored
-    /// unless we are in the chat.
+    /// Ask the server who is present, right now — the refresh button.
+    /// Sends immediately: the operator asked, and will see any refusal.
     func refreshRoster() {
-        connection?.requestRoster()
+        connection?.requestRoster(userInitiated: true)
     }
 
-    /// The roster is a snapshot, so it needs re-asking. A minute is well
-    /// under the rate at which a VHF chat's population changes.
+    /// Fetch recent messages. A deliberate action, because it costs one of
+    /// the operator's roughly-one-per-minute command slots.
+    func loadBacklog() {
+        connection?.requestBacklog(userInitiated: true)
+    }
+
+    /// The roster is a snapshot and needs re-asking, but each poll spends
+    /// one of the operator's command slots — so five minutes, not one. A
+    /// chat's population does not turn over faster than that, and the
+    /// refresh button covers the impatient case.
     private func startRosterRefresh() {
         rosterTimer?.cancel()
         rosterTimer = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 60_000_000_000)
+                try? await Task.sleep(nanoseconds: 300_000_000_000)
                 guard let self, self.isInChat else { return }
-                self.refreshRoster()
+                self.connection?.requestRoster()
             }
         }
     }
@@ -153,31 +167,34 @@ final class AppModel: ObservableObject {
         case .loggedIn(let room):
             isInChat = true
             status = "In \(room.title) as \(callsign)"
-            // Backfill the window and find out who is actually here,
-            // rather than waiting for someone to speak.
+            // One command on join, not two: the server allows about one
+            // a minute, and the roster is worth more than the backlog.
+            // Backlog is a button the operator can spend a slot on.
             Task { [weak self] in
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
-                self?.connection?.requestBacklog()
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                self?.refreshRoster()
+                self?.connection?.requestRoster()
             }
             startRosterRefresh()
         case .rosterComplete(let present):
             // Authoritative presence. Keep anything we already learned
             // from traffic (a name, a locator) for stations still here.
-            stations = present.map { fresh in
-                guard let known = stations.first(where: { $0.callsign == fresh.callsign }) else { return fresh }
-                var merged = fresh
-                merged.name = fresh.name ?? known.name
-                merged.locator = fresh.locator ?? known.locator
-                return merged
-            }
-            .sorted { a, b in
-                // Operators at their terminal first — they are the ones
-                // you can actually raise a sked with.
-                if a.isAway != b.isAway { return !a.isAway }
-                return a.callsign < b.callsign
-            }
+            let known = Dictionary(stations.map { ($0.callsign, $0) },
+                                   uniquingKeysWith: { first, _ in first })
+            stations = present
+                .map { fresh in
+                    guard let old = known[fresh.callsign] else { return fresh }
+                    var merged = fresh
+                    merged.name = fresh.name ?? old.name
+                    merged.locator = fresh.locator ?? old.locator
+                    return merged
+                }
+                .sorted { a, b in
+                    // Operators at their terminal first — they are the
+                    // ones you can actually raise a sked with.
+                    if a.isAway != b.isAway { return !a.isAway }
+                    return a.callsign < b.callsign
+                }
+            stationsAreStale = false
 
         case .disconnected(let reason):
             isConnected = false

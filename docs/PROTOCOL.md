@@ -243,6 +243,38 @@ callsign in it, and `SV1DH/P` would overrun the field.
 
 Message text and names are **HTML-escaped** — see the roster note below.
 
+## Command rate limit — verified 2026-08-28
+
+The server accepts roughly **one command per minute**, and refuses a
+too-soon one with:
+
+```
+Please wait 55 second(s) between two commands.
+```
+
+This is not in any write-up, and no transcript revealed it — it only
+appears when a client issues commands at a realistic pace, which is to say
+when the app is actually used. The first build fired `/SHOW MSG` and
+`/SHOW USER` 1.5s apart on join and polled the roster every 60s, so almost
+every one was refused and the station table sat empty.
+
+Ordinary chat text does **not** appear to be limited; the notice says
+"between two commands". Whether `/CQ` counts as a command is unverified.
+
+The rule the client follows: **never spend the operator's command budget
+without being asked.**
+
+- Anything the operator types goes out immediately — they are watching and
+  will see any refusal.
+- The app's own housekeeping is queued, deduplicated, and throttled, and
+  yields to user commands.
+- One command on join (`/SHOW USER`), roster polling every five minutes,
+  and `/SHOW MSG` demoted to a button.
+- The notice is parsed and believed over our own estimate. It is matched
+  **anchored to the start of a line, and only against lines that did not
+  parse as chat**, so an operator typing "please wait 30 seconds" cannot
+  silently reconfigure the throttle.
+
 ## The one rule that shapes the client
 
 **Anything written to the socket after login goes straight to the room.**

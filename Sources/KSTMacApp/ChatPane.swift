@@ -113,6 +113,14 @@ private struct Composer: View {
                 .disabled(!model.isInChat)
                 .onSubmit { model.sendDraft() }
 
+            Button {
+                model.loadBacklog()
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+            }
+            .disabled(!model.isInChat)
+            .help("Fetch recent messages (/SHOW MSG). Uses one of the server's ~1-per-minute command slots.")
+
             Button("Send") { model.sendDraft() }
                 .disabled(!model.isInChat || model.draft.trimmingCharacters(in: .whitespaces).isEmpty)
         }
