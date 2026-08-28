@@ -687,6 +687,22 @@ parser rather than guessing what it wants. Three separate details —
 `login:` as a prompt substring, `strip_prefix("DX de ")`, and this — all
 came from `crates/dxca-connect/src/dxcluster/`.
 
+**2026-08-28, twenty-seventh pass — stop depending on a manual `/SET
+DXCLX`.** Whether the server remembers the DX flag between sessions is
+unverified — `/SHow CONFig` lists it under "personal settings" beside the
+name and locator, which *are* persistent, so it probably survives, but
+probably is not good enough for something whose failure mode is a relay
+that silently forwards nothing.
+
+So while the relay is enabled, each pane sends `/SET DXCLX` on joining,
+queued as housekeeping like the roster poll. Repeating it is harmless —
+the server answers the same either way — and it costs one slot per join.
+Switching the relay on mid-session asks every already-connected pane
+immediately, rather than waiting for a reconnect.
+
+Panes do **not** send it when the relay is off: nothing is listening, and
+it would be changing the operator's server-side preferences for no reason.
+
 ## Open items
 
 **Ready to build**

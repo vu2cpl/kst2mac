@@ -98,7 +98,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                Text("Forwards ON4KST spots verbatim as standard `DX de` cluster lines. Enable spots on the server first with /SET DXCLX in a connected pane, or nothing arrives to forward.")
+                Text("Forwards ON4KST spots verbatim as standard `DX de` cluster lines. While this is on, each pane sends /SET DXCLX when it joins, so the server always has spots enabled for your account.")
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("In dxca add:  [[cluster_nodes]] name = \"KST2Mac\", host = \"127.0.0.1\", port = \(relay.port), login_call = \"\(callsign.isEmpty ? "YOURCALL" : callsign)\"")

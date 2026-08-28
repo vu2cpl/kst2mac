@@ -11,6 +11,9 @@ struct KST2MacApp: App {
         // constructed until Settings is opened — and a relay that only
         // starts when you look at it is not serving anything.
         _ = SpotRelayHost.shared
+        SpotRelayHost.shared.onEnabled = {
+            SessionStore.shared.enableSpotsEverywhere()
+        }
     }
 
     var body: some Scene {

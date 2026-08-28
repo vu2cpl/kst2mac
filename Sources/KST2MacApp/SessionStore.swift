@@ -75,4 +75,12 @@ final class SessionStore: ObservableObject {
     }
 
     func exists(_ id: UUID) -> Bool { models[id] != nil }
+
+    /// Ask every connected session to turn spots on — used when the relay
+    /// is switched on while panes are already in a chat.
+    func enableSpotsEverywhere() {
+        for model in models.values where model.isInChat {
+            model.enableSpots()
+        }
+    }
 }

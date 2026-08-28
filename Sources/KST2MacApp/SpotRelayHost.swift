@@ -28,8 +28,15 @@ final class SpotRelayHost: ObservableObject {
         didSet {
             UserDefaults.standard.set(enabled, forKey: "relay.enabled")
             enabled ? start() : stop()
+            // Enabling mid-session should start the spots flowing without
+            // waiting for a reconnect.
+            if enabled { onEnabled?() }
         }
     }
+
+    /// Called when the relay is switched on, so connected panes can ask
+    /// the server for spots.
+    var onEnabled: (() -> Void)?
 
     @Published var port: Int {
         didSet { UserDefaults.standard.set(port, forKey: "relay.port") }

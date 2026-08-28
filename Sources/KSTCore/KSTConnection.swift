@@ -212,6 +212,19 @@ public final class KSTConnection: @unchecked Sendable {
         queue.async { self.rawMonitor = monitor }
     }
 
+    /// Turn DX spots on for this account, in CLX format.
+    ///
+    /// Queued as housekeeping, so it waits its turn behind anything the
+    /// operator asked for and respects the one-a-minute limit. Harmless
+    /// to repeat: the server answers "DX messages allowed (CLX format)."
+    /// whether or not it was already on.
+    public func enableSpots() {
+        queue.async {
+            guard self.phase == .inChat else { return }
+            self.enqueueHousekeeping("/SET DXCLX")
+        }
+    }
+
     /// Ask the server who is present. The reply arrives as `.line`s of
     /// kind `.roster` and is closed by a `.rosterComplete` event.
     /// - Parameter userInitiated: `true` when the operator asked for it

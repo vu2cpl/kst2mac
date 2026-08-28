@@ -116,6 +116,11 @@ final class AppModel: ObservableObject {
         conn.connect(username: callsign, password: password, room: room)
     }
 
+    /// Turn on DX spots for this session, in CLX format.
+    func enableSpots() {
+        connection?.enableSpots()
+    }
+
     /// Ask the server who is present, right now — the refresh button.
     /// Sends immediately: the operator asked, and will see any refusal.
     func refreshRoster() {
@@ -256,6 +261,14 @@ final class AppModel: ObservableObject {
             Task { [weak self] in
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
                 self?.connection?.requestRoster()
+                // Only when something is listening for spots. Whether the
+                // server remembers /SET DXCLX between sessions is
+                // unverified, and a relay that silently forwards nothing
+                // because a manual step was missed is worse than spending
+                // one queued command slot per join.
+                if SpotRelayHost.shared.enabled {
+                    self?.connection?.enableSpots()
+                }
             }
             startRosterRefresh()
         case .rosterComplete(let present):

@@ -169,8 +169,10 @@ login_call = "VU2CPL"
 
 Two things to know:
 
-- Spots arrive **disabled** on the ON4KST side. Send `/SET DXCLX` in a
-  connected pane once, or nothing reaches the relay to forward.
+- Spots arrive **disabled** on the ON4KST side, but you do not have to
+  remember that: while the relay is on, each pane sends `/SET DXCLX` when
+  it joins, and switching the relay on mid-session asks every connected
+  pane straight away.
 - The feed is **unauthenticated** — anyone who connects gets the spots —
   so it binds `127.0.0.1` only. "Allow connections from the network"
   opens it to the LAN; leave it off unless something on another machine
