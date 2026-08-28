@@ -24,6 +24,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var status: String = "Not connected"
     @Published private(set) var isConnected = false
     @Published private(set) var isInChat = false
+    /// The server's own UTC clock, from its command prompt.
+    @Published private(set) var serverTime: String = ""
 
     /// The message being composed. Nothing leaves the app until the
     /// operator presses Return — the chat has no draft state, so an
@@ -99,6 +101,13 @@ final class AppModel: ObservableObject {
         case .status(let text):
             status = text
         case .line(let line):
+            if case .prompt(_, let chat) = line.kind {
+                // Not traffic: it is the server telling us where we are
+                // and what time it thinks it is.
+                if let stamp = line.stamp { serverTime = stamp + "Z" }
+                if !chat.isEmpty { status = "In \(chat) as \(callsign)" }
+                return
+            }
             append(line)
         case .station(let station):
             upsert(station)

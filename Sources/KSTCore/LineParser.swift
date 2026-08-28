@@ -24,6 +24,15 @@ public struct LineParser {
         options: [.caseInsensitive]
     )
 
+    /// The command prompt the server reprints after every command and at
+    /// idle: `0829Z VU2CPL 144/432 MHz IARU R 3 chat>`. It is furniture,
+    /// not traffic, so the UI keeps it out of the chat log — but it does
+    /// carry the server's idea of the current UTC time.
+    private static let prompt = try! NSRegularExpression(
+        pattern: #"^\s*(\d{4})Z\s+([A-Z0-9/\-]{3,})\s+(.*?)\s*chat>\s*$"#,
+        options: [.caseInsensitive]
+    )
+
     /// A locator anywhere in a line: 4 or 6 characters, e.g. JO20 / MK68qm.
     private static let locator = try! NSRegularExpression(
         pattern: #"\b([A-R]{2}\d{2}(?:[A-X]{2})?)\b"#,
@@ -34,6 +43,17 @@ public struct LineParser {
 
     public func parse(_ raw: String) -> KSTLine {
         let range = NSRange(raw.startIndex..<raw.endIndex, in: raw)
+
+        if let p = Self.prompt.firstMatch(in: raw, range: range) {
+            func g(_ i: Int) -> String {
+                guard let r = Range(p.range(at: i), in: raw) else { return "" }
+                return String(raw[r]).trimmingCharacters(in: .whitespaces)
+            }
+            return KSTLine(raw: raw,
+                           kind: .prompt(callsign: g(2).uppercased(), chat: g(3)),
+                           stamp: g(1))
+        }
+
         guard let m = Self.message.firstMatch(in: raw, range: range) else {
             return KSTLine(raw: raw, kind: .other)
         }

@@ -23,7 +23,7 @@ table with distance and beam heading from your own square.
 | Maidenhead distance / bearing | done, unit-tested |
 | Password in Keychain | done |
 | Station table | **partial** — learns callsigns from chat traffic, not from the server's roster |
-| User-list / roster parser | **not started** — blocked on a transcript, see below |
+| User-list / roster parser | **not started** — command is `/SHow USer`, layout unknown |
 | Map view | not planned for v0.1 |
 
 ## Build and run
@@ -89,13 +89,16 @@ not who is *present*, because the server's user-list command and its column
 format haven't been confirmed. Record a transcript —
 
 ```bash
-swift run KSTCapture --call VU2CPL --room 9 --seconds 180 --probe
+swift run KSTCapture --call VU2CPL --room 9 --seconds 120 --probe
 ```
 
-— and the roster parser can be written against real bytes. The recorder
-mirrors traffic to the terminal live and ticks a countdown, so a quiet room
-looks different from a hung client. `--probe` sends `/HELP` after joining,
-whose reply should name the roster command.
+— and the roster parser can be written against real bytes. `--probe` runs
+`/SHOW USER`, `/SHOW MSG 15`, `/SHOW CONFIG` and `/HELP` after joining; all
+four reply privately to your own terminal and none post to the room. The
+recorder mirrors traffic live and ticks a countdown, so a quiet room looks
+different from a hung client.
+
+See [docs/PROTOCOL.md](docs/PROTOCOL.md) for the full captured command set.
 
 It prompts for the password with echo off and never writes it to the file.
 Transcripts are git-ignored — they contain whatever the room said while you

@@ -45,6 +45,10 @@ public struct TelnetCodec {
             case .data:
                 if byte == Self.IAC {
                     state = .iac
+                } else if byte == 0 {
+                    // NVT NUL is a no-op. The welcome banner contains one
+                    // and it renders as a control glyph if passed through.
+                    continue
                 } else {
                     payload.append(byte)
                 }

@@ -97,6 +97,74 @@ there is no 6. Both claims are wrong, and the missing rooms are the ones
 that matter from VU: **6 = 50 MHz IARU R3** and **9 = 144/432 MHz IARU
 R3**. These are the `ChatRoom` cases, and 9 is the app default.
 
+## After login — verified 2026-08-28
+
+```
+Welcome <Name> <CALL> on this 144/432 MHz IARU R 3 amateur chat (by ON4KST)
+<NUL>
+Use the inline ON4KST-2 CLX DX cluster for your spot.
+More info type "/HELP"
+0829Z VU2CPL 144/432 MHz IARU R 3 chat>
+```
+
+Two things to note. The banner contains a literal **NUL byte**, which the
+telnet codec now drops. And the server reprints a **command prompt** after
+every command and at idle:
+
+```
+HHMMZ CALLSIGN <chat name> chat>
+```
+
+That is furniture, not traffic — `LineParser` classifies it as `.prompt`
+and the UI keeps it out of the chat log, using it only for the status line
+and the server's UTC clock. It also tells us the server thinks in
+**`HHMM` + `Z`, UTC**.
+
+## Command set — captured verbatim from `/HELP`
+
+```
+/Help              The list of the commands available.
+/CHAT  value       Login into another chat. Values are 28 40 50 50R2 50R3
+                   144 144R2 144R3 GHZ EME HF KHZ WARC.
+/CQ    call msg    To send a public msg seen in highlight by the callsign.
+/DX    qrg call [info] To send a DX spot.
+/SET   ANN         Allow announce messages to come out on your terminal.
+/SET   DX          Allow DX messages to come out on your terminal.
+/SET   DXCLX       Allow DX messages ... at CLX format.
+/SET   HERE        Tell the system you are present at your terminal.
+/SET   MYCLx value To give the cluster where to spot the DX.
+/SET   NAme value  Set your name.
+/SET   QRA value   Set your QRA Grid locator.
+/SET   QRG value   Filter the DX spots. Values are 40 50 70 144 222 432 GHZ
+/SET   WWC         Allow World Wide Converse messages ...
+/SHow  CLx         The list of the available DX clusters.
+/SHow  CONFig      Show your personal settings.
+/SHow  DX [nbr]    Get the last DX spots (QRG as your filter settings).
+/SHow  MSG [nbr]   Get the last chat messages.
+/SHow  MYCLx       To show the DX cluster where the DX spot is sent.
+/SHow  LOC value   To show the locator of a station with QRB and QTF.
+/SHow  NODes       To show the way to access to the chat from packet radio.
+/SHow  USer [call] Show the users connected to this chat.
+/UNSET ANN | DX | HERE | QRG | WWC
+/UPDTLOC call loc  To ask to the sysop to update the locator of a station.
+/Quit              Exit from the chat.
+```
+
+Capitalisation in the listing marks the accepted abbreviation: `/SHow` →
+`/SH`, `/SET NAme` → `/SET NA`.
+
+The ones that matter for this client:
+
+| Command | Why |
+|---|---|
+| `/SHow USer` | **The roster.** This is what the station table needs. |
+| `/SHow MSG [nbr]` | Backfill scrollback on connect instead of starting blank. |
+| `/SHow LOC call` | Server-side QRB/QTF — a cross-check on our own Maidenhead maths. |
+| `/CHAT value` | Switch rooms without dropping the connection. |
+| `/SET NAme`, `/SET QRA` | Push the operator's name and locator from Settings. |
+| `/SET HERE`, `/UNSET HERE` | Presence, for an away toggle. |
+| `/DX qrg call` | Spot to the inline CLX cluster. |
+
 ## Message format
 
 ```
@@ -136,18 +204,17 @@ publish it.
 
 Open questions the transcript answers:
 
-1. **Is the stamp `21:15` or `2115`?** The format documentation says only
-   "TIME". `LineParser` accepts both; once we know, tighten it. The
-   2026-08-28 capture joined a silent room, so no message lines were seen.
-2. **The user list.** Which command produces the roster, and its column
-   layout. This is the big one — the station table currently learns
-   callsigns only from chat traffic, so it shows who has *spoken*, not who
-   is *present*. A roster parser replaces that.
-3. **Locator source.** Whether the roster carries locators directly, or
+1. **`/SHow USer` output format.** The command is confirmed; its column
+   layout is not. This is the last thing standing between the station
+   table and showing who is actually present.
+2. **Message-line format.** No chat message has been captured yet. The
+   command prompt uses `HHMMZ`, so `HHMM` is the better guess of the two
+   the parser accepts, but that is inference, not evidence. `/SHOW MSG 15`
+   settles it.
+3. **Locator source.** Whether `/SHow USer` carries locators directly, or
    whether we keep scraping them out of message text.
 4. **Join/leave notices** — their shape, so the roster can age out.
-5. **The full `/HELP` command set**, for the commands worth surfacing in
-   the UI.
+5. ~~The full `/HELP` command set~~ — captured, see above.
 
 ## Prior art
 

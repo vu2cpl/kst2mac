@@ -1,7 +1,7 @@
 # KST Mac — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.1 — login path fixed, never yet seen a chat message
+**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.1 — login works end to end; roster still to do
 
 ---
 
@@ -100,19 +100,38 @@ prompts carry no trailing newline, described as confirmed. It was inferred
 from a transcript, never tested, and it was wrong: `nc` shows `Login:` is
 CRLF-terminated. Both files are corrected.
 
-Still open: no message line has ever been seen, so the timestamp format and
-the roster layout remain entirely unverified.
+**2026-08-28, fourth pass — login works.** With the scalar-splitting fix
+the handshake completes: `Welcome Manoj VU2CPL on this 144/432 MHz IARU R 3
+amateur chat`, and `/HELP` replied. 2739 bytes, up from the 480-byte stall.
+
+The full command set is now captured verbatim in `docs/PROTOCOL.md`. The
+headline: **`/SHow USer` is the roster command** the station table has been
+waiting for. Also useful and previously unknown — `/SHow MSG [nbr]`
+backfills scrollback, `/SHow LOC` gives server-side QRB/QTF, `/CHAT value`
+switches rooms without reconnecting, `/SET NAme` and `/SET QRA` push the
+operator's name and locator, `/SET HERE` is presence.
+
+Two smaller findings folded in: the welcome banner contains a literal **NUL
+byte** (the telnet codec drops it now), and the server reprints a command
+prompt — `HHMMZ CALL <chat> chat>` — after every command and at idle. That
+is furniture; `LineParser` gives it its own `.prompt` kind and the UI keeps
+it out of the chat log, using it for the status line and the server clock.
+It also shows the server thinks in `HHMM` + `Z`, UTC.
+
+Still open: no actual chat *message* has been seen, so the message-line
+format remains inference, and `/SHow USer`'s column layout is unknown.
+`--probe` now runs `/SHOW USER`, `/SHOW MSG 15`, `/SHOW CONFIG` and
+`/HELP` — all reply privately, none post to the room — so one more capture
+settles both.
 
 ## Open items
 
-1. **Record a transcript of a room with traffic** — `swift run KSTCapture
-   --call VU2CPL --room 9 --seconds 180 --probe`. Everything below is
-   blocked on it. `--probe` sends `/HELP`, whose reply should name the
-   roster command.
-2. **Roster parser** — find the user-list command and its column layout,
-   then populate the station table from the roster instead of from chat
-   traffic. Biggest single improvement available.
-3. **Confirm the timestamp format** — `21:15` or `2115`. The parser
+1. **One more `--probe` capture** — `swift run KSTCapture --call VU2CPL
+   --room 9 --seconds 120 --probe`. Items 2 and 3 are blocked on it.
+2. **Roster parser** — `/SHow USer`, column layout unknown. Populate the
+   station table from it instead of from chat traffic. Biggest single
+   improvement available.
+3. **Confirm the message-line format** — `21:15` or `2115`. The parser
    accepts both; narrow it once known.
 4. **Join/leave notices** so the roster can age stations out.
 5. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs

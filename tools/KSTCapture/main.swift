@@ -49,10 +49,11 @@ if args.contains("-h") || args.contains("--help") {
       --out      Transcript path (default kst-transcript.txt)
       --seconds  How long to record after login (default 120)
       --quiet    Do not mirror the traffic to the terminal
-      --probe    After joining, send /HELP to capture the command list.
-                 This writes to the connection -- /HELP replies privately,
-                 but it is off by default so nothing is ever sent without
-                 you asking for it.
+      --probe    After joining, run the read-only commands whose output
+                 format we still need: /SHOW USER, /SHOW MSG 15,
+                 /SHOW CONFIG, /HELP. All four reply privately to your own
+                 terminal -- none of them post to the room. Off by default
+                 so nothing reaches the connection unless you ask.
 
     The password is prompted for with echo off and never written to the
     transcript. Read what lands in the file before sharing it — it contains
@@ -113,10 +114,15 @@ Task {
         case .loggedIn(let r):
             note("[joined \(r.title)]")
             if probe {
-                // Give the room banner a moment to land first.
+                // Give the room banner a moment to land first, then walk
+                // the commands whose *output format* we still need to see.
+                // All four reply to us privately; none post to the room.
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
-                note("[sending /HELP]")
-                conn.send("/HELP")
+                for command in ["/SHOW USER", "/SHOW MSG 15", "/SHOW CONFIG", "/HELP"] {
+                    note("[sending \(command)]")
+                    conn.send(command)
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                }
             }
         case .disconnected(let r):  note("[disconnected: \(r ?? "clean")]")
         case .line, .station:       break

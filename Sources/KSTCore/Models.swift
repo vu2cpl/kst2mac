@@ -52,6 +52,10 @@ public struct KSTLine: Identifiable, Sendable {
     public enum Kind: Sendable {
         /// A chat message: `HH:MM CALL Name > (ToCall) text`
         case message(from: String, name: String?, to: String?, text: String)
+        /// The server's command prompt, reprinted after every command:
+        /// `0829Z VU2CPL 144/432 MHz IARU R 3 chat>`. Furniture, not
+        /// traffic — kept out of the chat log.
+        case prompt(callsign: String, chat: String)
         /// Anything the server said that we didn't classify.
         case other
         /// Locally generated notice (connect/disconnect/errors) — never
