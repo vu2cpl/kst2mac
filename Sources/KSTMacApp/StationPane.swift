@@ -1,0 +1,59 @@
+import SwiftUI
+import KSTCore
+
+/// Who is on, with distance and beam heading from your own square — the
+/// reason a VHF operator keeps the chat open at all.
+struct StationPane: View {
+    @EnvironmentObject private var model: AppModel
+    @State private var selection: Station.ID?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Table(model.stations, selection: $selection) {
+                TableColumn("Call") { s in
+                    Text(s.callsign).font(.system(.body, design: .monospaced))
+                }
+                .width(min: 78)
+
+                TableColumn("Name") { s in
+                    Text(s.name ?? "").foregroundStyle(.secondary)
+                }
+                .width(min: 60)
+
+                TableColumn("Loc") { s in
+                    Text(s.locator ?? "").font(.system(.caption, design: .monospaced))
+                }
+                .width(min: 56)
+
+                TableColumn("km") { s in
+                    Text(model.path(to: s).map { String(format: "%.0f", $0.distanceKm) } ?? "")
+                        .font(.system(.caption, design: .monospaced))
+                }
+                .width(min: 48)
+
+                TableColumn("Bearing") { s in
+                    Text(model.path(to: s).map { String(format: "%.0f°", $0.bearing) } ?? "")
+                        .font(.system(.caption, design: .monospaced))
+                }
+                .width(min: 52)
+            }
+            .contextMenu(forSelectionType: Station.ID.self) { ids in
+                if let call = ids.first {
+                    Button("Direct message \(call)") { model.directedTo = call }
+                }
+            }
+
+            Divider()
+            HStack {
+                Text("\(model.stations.count) heard")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                if model.homeGrid.isEmpty {
+                    Text("Set your locator in Settings for distances")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+            }
+            .padding(.horizontal, 8).padding(.vertical, 4)
+        }
+    }
+}

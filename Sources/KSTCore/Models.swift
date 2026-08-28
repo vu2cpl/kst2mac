@@ -1,0 +1,93 @@
+import Foundation
+
+/// The chat rooms the ON4KST telnet menu offers, keyed by the digit you
+/// send at the "enter chat number" prompt.
+///
+/// The menu as served by www.on4kst.info:23000 lists 1,2,3,4,5,7 — there is
+/// deliberately no 6 in the published menu. Re-check against a live
+/// transcript (`swift run KSTCapture`) if the server ever changes it.
+public enum ChatRoom: Int, CaseIterable, Identifiable, Sendable {
+    case fiftySeventy = 1
+    case vhfUhf       = 2
+    case microwave    = 3
+    case eme          = 4
+    case lowBand      = 5
+    case fiftyRegion2 = 7
+
+    public var id: Int { rawValue }
+
+    public var title: String {
+        switch self {
+        case .fiftySeventy: return "50 / 70 MHz"
+        case .vhfUhf:       return "144 / 432 MHz"
+        case .microwave:    return "Microwave"
+        case .eme:          return "EME / JT65"
+        case .lowBand:      return "Low Band"
+        case .fiftyRegion2: return "50 MHz IARU Region 2"
+        }
+    }
+}
+
+/// One line as received from the server, after telnet decoding.
+///
+/// `raw` is always the verbatim line. Everything else is best-effort: if the
+/// parser doesn't recognise a line it still arrives here as `.other` with
+/// `raw` intact, so nothing the server says can ever be silently dropped.
+public struct KSTLine: Identifiable, Sendable {
+    public enum Kind: Sendable {
+        /// A chat message: `HH:MM CALL Name > (ToCall) text`
+        case message(from: String, name: String?, to: String?, text: String)
+        /// Anything the server said that we didn't classify.
+        case other
+        /// Locally generated notice (connect/disconnect/errors) — never
+        /// came off the wire.
+        case local
+    }
+
+    public let id = UUID()
+    public let received: Date
+    public let raw: String
+    public let kind: Kind
+    /// Server-supplied timestamp text (`HH:MM`) when the line carried one.
+    public let stamp: String?
+
+    public init(received: Date = Date(), raw: String, kind: Kind, stamp: String? = nil) {
+        self.received = received
+        self.raw = raw
+        self.kind = kind
+        self.stamp = stamp
+    }
+
+    public static func local(_ text: String) -> KSTLine {
+        KSTLine(raw: text, kind: .local)
+    }
+}
+
+/// A station seen on the chat, as shown in the side table.
+public struct Station: Identifiable, Sendable, Equatable {
+    public var id: String { callsign }
+    public var callsign: String
+    public var name: String?
+    public var locator: String?
+    /// Free-text status/comment the operator set, when the server gives one.
+    public var status: String?
+    public var lastHeard: Date
+
+    public init(callsign: String, name: String? = nil, locator: String? = nil,
+                status: String? = nil, lastHeard: Date = Date()) {
+        self.callsign = callsign
+        self.name = name
+        self.locator = locator
+        self.status = status
+        self.lastHeard = lastHeard
+    }
+}
+
+/// Everything the connection reports back to the UI.
+public enum KSTEvent: Sendable {
+    case status(String)          // human-readable connection state
+    case line(KSTLine)
+    case station(Station)        // a station was seen or updated
+    case loggedIn(ChatRoom)
+    case disconnected(String?)   // nil = clean, otherwise the reason
+}

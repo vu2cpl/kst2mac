@@ -1,0 +1,26 @@
+# Editor / IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Secrets / env
+.env
+
+# Python (if used)
+__pycache__/
+*.pyc
+.venv/
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Build output
+build/
+
+# Protocol transcripts — these contain whatever the room said while you
+# were recording, and are for local parser work only. Never commit one.
+*transcript*.txt
