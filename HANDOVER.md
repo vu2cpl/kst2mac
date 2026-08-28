@@ -1,7 +1,7 @@
 # KST Mac — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.1 working
+**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.1 working, protocol partly verified
 
 ---
 
@@ -50,29 +50,57 @@ roster command, whose format is unverified.
   step *east*, not north. Three of the first-draft tests asserted the
   wrong thing here; the maths was right.
 
+## What changed
+
+**2026-08-28, second pass — first live capture.** The transcript
+immediately falsified two things v0.1 was built on:
+
+- **The chat menu has 13 rooms, not 6.** Every third-party write-up of
+  this menu lists only 1–5 and 7 and asserts there is no 6. Wrong on both
+  counts, and the omissions were the ones that matter from VU: 6 = 50 MHz
+  IARU R3, 9 = 144/432 MHz IARU R3. `ChatRoom` now carries all thirteen,
+  transcribed verbatim, and the app default moved from room 2 (Europe) to
+  room 9.
+- **`KSTCapture` printed nothing while running**, so a successful join to
+  a silent room was indistinguishable from a hang — which is exactly how
+  it was reported. It now mirrors traffic to the terminal and ticks a
+  seconds-left / bytes-captured counter. A capture tool that shows nothing
+  is not a capture tool.
+
+Also confirmed correct, which is worth recording: the prompts carry **no
+trailing newline** (the CRLF after each one in a transcript is the server
+acknowledging our answer), so `checkForPrompt()` inspecting the
+un-terminated tail is right, not a lucky guess.
+
+The capture joined a silent room, so no message lines were seen — the
+timestamp format and the roster are still open.
+
 ## Open items
 
-1. **Record a live transcript** — `swift run KSTCapture --call VU2CPL
-   --room 2 --seconds 180`. Everything below is blocked on it.
+1. **Record a transcript of a room with traffic** — `swift run KSTCapture
+   --call VU2CPL --room 9 --seconds 180 --probe`. Everything below is
+   blocked on it. `--probe` sends `/HELP`, whose reply should name the
+   roster command.
 2. **Roster parser** — find the user-list command and its column layout,
    then populate the station table from the roster instead of from chat
    traffic. Biggest single improvement available.
-3. **Tighten prompt matching** in `checkForPrompt()` once the real prompt
-   wording is known (currently matched loosely on substrings).
-4. **Confirm the timestamp format** — `21:15` or `2115`. The parser
+3. **Confirm the timestamp format** — `21:15` or `2115`. The parser
    accepts both; narrow it once known.
-5. **Join/leave notices** so the roster can age stations out.
-6. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs
+4. **Join/leave notices** so the roster can age stations out.
+5. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs
    it automatically if present.
-7. Not yet decided: notarisation (`notarize.sh`, as in the sibling Mac
+6. Not yet decided: notarisation (`notarize.sh`, as in the sibling Mac
    apps) if this is ever distributed beyond the shack.
-8. Not planned for v0.1: map view, DXClusterAggregator spot integration.
+7. Not planned for v0.1: map view, DXClusterAggregator spot integration.
    Both were explicitly deferred when the scope was set.
 
 ## Gotchas
 
 - **No TLS on port 23000.** The password is sent in clear. The README and
   both password UIs say so; keep saying so.
+- **The login banner echoes your public IP back at you**, so a transcript
+  identifies the machine that recorded it. One more reason not to publish
+  one.
 - **`KSTCapture` transcripts are git-ignored** (`*transcript*.txt`). They
   contain whatever the room said while recording. Read them locally, don't
   commit or publish them.

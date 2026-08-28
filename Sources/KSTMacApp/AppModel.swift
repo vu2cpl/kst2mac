@@ -10,11 +10,11 @@ final class AppModel: ObservableObject {
     @AppStorage("homeGrid")  var homeGrid: String = ""
     @AppStorage("host")      var host: String = KSTConnection.defaultHost
     @AppStorage("port")      var port: Int = Int(KSTConnection.defaultPort)
-    @AppStorage("roomRaw")   var roomRaw: Int = ChatRoom.vhfUhf.rawValue
+    @AppStorage("roomRaw")   var roomRaw: Int = ChatRoom.vhfUhfRegion3.rawValue
     @AppStorage("savePassword") var savePassword: Bool = true
 
     var room: ChatRoom {
-        get { ChatRoom(rawValue: roomRaw) ?? .vhfUhf }
+        get { ChatRoom(rawValue: roomRaw) ?? .vhfUhfRegion3 }
         set { roomRaw = newValue.rawValue }
     }
 

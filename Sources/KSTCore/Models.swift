@@ -1,29 +1,44 @@
 import Foundation
 
 /// The chat rooms the ON4KST telnet menu offers, keyed by the digit you
-/// send at the "enter chat number" prompt.
+/// send at the "Your choice :" prompt.
 ///
-/// The menu as served by www.on4kst.info:23000 lists 1,2,3,4,5,7 — there is
-/// deliberately no 6 in the published menu. Re-check against a live
-/// transcript (`swift run KSTCapture`) if the server ever changes it.
+/// Transcribed verbatim from a live session on 2026-08-28 — all thirteen
+/// of them. Third-party write-ups of this menu list only six rooms and
+/// claim there is no 6; both are wrong. Rooms 6 and 9 are the IARU
+/// Region 3 rooms, which are the relevant ones from VU.
 public enum ChatRoom: Int, CaseIterable, Identifiable, Sendable {
-    case fiftySeventy = 1
-    case vhfUhf       = 2
-    case microwave    = 3
-    case eme          = 4
-    case lowBand      = 5
-    case fiftyRegion2 = 7
+    case fiftySeventy      = 1
+    case vhfUhf            = 2
+    case microwave         = 3
+    case eme               = 4
+    case lowBand           = 5
+    case fiftyRegion3      = 6
+    case fiftyRegion2      = 7
+    case vhfUhfRegion2     = 8
+    case vhfUhfRegion3     = 9
+    case kilohertz         = 10
+    case warc              = 11
+    case twentyEight       = 12
+    case forty             = 13
 
     public var id: Int { rawValue }
 
     public var title: String {
         switch self {
-        case .fiftySeventy: return "50 / 70 MHz"
-        case .vhfUhf:       return "144 / 432 MHz"
-        case .microwave:    return "Microwave"
-        case .eme:          return "EME / JT65"
-        case .lowBand:      return "Low Band"
-        case .fiftyRegion2: return "50 MHz IARU Region 2"
+        case .fiftySeventy:  return "50 / 70 MHz"
+        case .vhfUhf:        return "144 / 432 MHz"
+        case .microwave:     return "Microwave"
+        case .eme:           return "EME / JT65"
+        case .lowBand:       return "Low Band"
+        case .fiftyRegion3:  return "50 MHz IARU Region 3"
+        case .fiftyRegion2:  return "50 MHz IARU Region 2"
+        case .vhfUhfRegion2: return "144 / 432 MHz IARU R2"
+        case .vhfUhfRegion3: return "144 / 432 MHz IARU R3"
+        case .kilohertz:     return "kHz (2000 – 630 m)"
+        case .warc:          return "WARC (30, 17, 12 m)"
+        case .twentyEight:   return "28 MHz"
+        case .forty:         return "40 MHz"
         }
     }
 }

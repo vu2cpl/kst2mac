@@ -18,7 +18,8 @@ table with distance and beam heading from your own square.
 |---|---|
 | Telnet codec (IAC stripping, option refusal) | done, unit-tested |
 | Prompt-driven login state machine | done — needs a live transcript to tighten the prompt matching |
-| Chat message parser | done — accepts both `21:15` and `2115` stamps |
+| Chat message parser | done — accepts both `21:15` and `2115` stamps, neither yet seen live |
+| Chat room list | done — all 13 rooms, transcribed from a live menu |
 | Maidenhead distance / bearing | done, unit-tested |
 | Password in Keychain | done |
 | Station table | **partial** — learns callsigns from chat traffic, not from the server's roster |
@@ -53,7 +54,8 @@ swift test
    service, not of this client.
 3. Launch, open Settings (⌘,), and set your callsign, your locator
    (e.g. `MK83`), and save the password to the Keychain.
-4. Pick a room from the toolbar and press Connect.
+4. Pick a room from the toolbar and press Connect. From VU the ones you
+   want are **144 / 432 MHz IARU R3** (the default) and **50 MHz IARU R3**.
 
 ## Safety note about sending
 
@@ -87,13 +89,17 @@ not who is *present*, because the server's user-list command and its column
 format haven't been confirmed. Record a transcript —
 
 ```bash
-swift run KSTCapture --call VU2CPL --room 2 --seconds 180
+swift run KSTCapture --call VU2CPL --room 9 --seconds 180 --probe
 ```
 
 — and the roster parser can be written against real bytes. The recorder
-prompts for the password with echo off and never writes it to the file.
-Transcripts are git-ignored; they contain whatever the room said while you
-were recording.
+mirrors traffic to the terminal live and ticks a countdown, so a quiet room
+looks different from a hung client. `--probe` sends `/HELP` after joining,
+whose reply should name the roster command.
+
+It prompts for the password with echo off and never writes it to the file.
+Transcripts are git-ignored — they contain whatever the room said while you
+were recording, and the login banner echoes your public IP.
 
 ## Conventions
 

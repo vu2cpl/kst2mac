@@ -37,13 +37,22 @@ func option(_ name: String) -> String? {
 
 if args.contains("-h") || args.contains("--help") {
     print("""
-    Usage: KSTCapture --call <CALLSIGN> [--room <1-7>] [--out <file>] [--seconds <n>]
+    Usage: KSTCapture --call <CALLSIGN> [--room <1-13>] [--out <file>] [--seconds <n>]
 
       --call     Your ON4KST login (usually your callsign).
-      --room     Chat number: 1=50/70  2=144/432  3=Microwave
-                 4=EME/JT65  5=Low Band  7=50 MHz R2   (default 2)
+      --room     Chat number (default 9, 144/432 IARU R3):
+                  1 50/70 MHz        2 144/432 MHz      3 Microwave
+                  4 EME/JT65         5 Low Band         6 50 MHz R3
+                  7 50 MHz R2        8 144/432 R2       9 144/432 R3
+                 10 kHz 2000-630m   11 WARC            12 28 MHz
+                 13 40 MHz
       --out      Transcript path (default kst-transcript.txt)
       --seconds  How long to record after login (default 120)
+      --quiet    Do not mirror the traffic to the terminal
+      --probe    After joining, send /HELP to capture the command list.
+                 This writes to the connection -- /HELP replies privately,
+                 but it is off by default so nothing is ever sent without
+                 you asking for it.
 
     The password is prompted for with echo off and never written to the
     transcript. Read what lands in the file before sharing it — it contains
@@ -56,7 +65,7 @@ guard let call = option("--call")?.uppercased() else {
     FileHandle.standardError.write(Data("error: --call is required (try --help)\n".utf8))
     exit(2)
 }
-let room = ChatRoom(rawValue: Int(option("--room") ?? "2") ?? 2) ?? .vhfUhf
+let room = ChatRoom(rawValue: Int(option("--room") ?? "9") ?? 9) ?? .vhfUhfRegion3
 let outPath = option("--out") ?? "kst-transcript.txt"
 let seconds = Double(option("--seconds") ?? "120") ?? 120
 
@@ -66,27 +75,50 @@ guard !password.isEmpty else {
     exit(2)
 }
 
+let mirror = !args.contains("--quiet")
+let probe  = args.contains("--probe")
+
 FileManager.default.createFile(atPath: outPath, contents: nil)
 guard let out = FileHandle(forWritingAtPath: outPath) else {
     FileHandle.standardError.write(Data("error: cannot write \(outPath)\n".utf8))
     exit(1)
 }
 
-let conn = KSTConnection()
+let err = FileHandle.standardError
 let lock = NSLock()
+var byteCount = 0
+
+func note(_ text: String) {
+    lock.lock(); defer { lock.unlock() }
+    err.write(Data("\u{001B}[2K\r\(text)\n".utf8))
+}
+
+let conn = KSTConnection()
 conn.rawMonitor = { chunk in
     lock.lock(); defer { lock.unlock() }
     out.write(Data(chunk.utf8))
+    byteCount += chunk.utf8.count
+    // Mirroring the traffic is the whole point of watching a capture run.
+    // Without it a quiet room is indistinguishable from a hung client --
+    // which is exactly how the first run of this tool looked.
+    if mirror { err.write(Data(chunk.utf8)) }
 }
 
-print("Recording \(room.title) to \(outPath) for \(Int(seconds))s…")
+note("Recording \(room.title) to \(outPath) for \(Int(seconds))s. Ctrl-C to stop early.")
 
 Task {
     for await event in conn.events {
         switch event {
-        case .status(let s):        FileHandle.standardError.write(Data("[\(s)]\n".utf8))
-        case .loggedIn(let r):      FileHandle.standardError.write(Data("[logged in — \(r.title)]\n".utf8))
-        case .disconnected(let r):  FileHandle.standardError.write(Data("[disconnected: \(r ?? "clean")]\n".utf8))
+        case .status(let s):        note("[\(s)]")
+        case .loggedIn(let r):
+            note("[joined \(r.title)]")
+            if probe {
+                // Give the room banner a moment to land first.
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                note("[sending /HELP]")
+                conn.send("/HELP")
+            }
+        case .disconnected(let r):  note("[disconnected: \(r ?? "clean")]")
         case .line, .station:       break
         }
     }
@@ -94,8 +126,20 @@ Task {
 
 conn.connect(username: call, password: password, room: room)
 
-Thread.sleep(forTimeInterval: seconds)
+// Tick once a second so the terminal always shows the run is alive, even
+// when the room says nothing for minutes at a stretch.
+let deadline = Date().addingTimeInterval(seconds)
+while Date() < deadline {
+    Thread.sleep(forTimeInterval: 1.0)
+    lock.lock()
+    let remaining = Int(deadline.timeIntervalSinceNow.rounded())
+    let bytes = byteCount
+    err.write(Data("\u{001B}[2K\r\(remaining)s left, \(bytes) bytes captured".utf8))
+    lock.unlock()
+}
+note("")
+
 conn.disconnect()
 Thread.sleep(forTimeInterval: 0.5)
 try? out.close()
-print("Wrote \(outPath)")
+note("Wrote \(outPath) (\(byteCount) bytes)")
