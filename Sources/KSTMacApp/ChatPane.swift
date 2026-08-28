@@ -60,6 +60,22 @@ private struct LineRow: View {
             .background(highlighted ? Color.yellow.opacity(0.18) : .clear)
             .cornerRadius(4)
 
+        case .joined(let chat):
+            // One divider per join or /CHAT switch, instead of a
+            // four-line banner every time.
+            HStack(spacing: 8) {
+                VStack { Divider() }
+                Text(chat)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                VStack { Divider() }
+            }
+            .padding(.vertical, 6)
+
+        case .boilerplate:
+            EmptyView()
+
         case .roster:
             // Belongs in the station table, not the chat log.
             EmptyView()

@@ -107,8 +107,16 @@ More info type "/HELP"
 0829Z VU2CPL 144/432 MHz IARU R 3 chat>
 ```
 
-Two things to note. The banner contains a literal **NUL byte**, which the
-telnet codec now drops. And the server reprints a **command prompt** after
+The whole four-line banner repeats **verbatim on every `/CHAT` switch**,
+not just on login, so a session that hops rooms accumulates copies of it.
+The client collapses it: the `Welcome …` line becomes a one-line room
+divider (`.joined`), and the two fixed lines that follow — plus the
+`Web http://www.on4kst.com` line before `/HELP` output — are suppressed
+entirely (`.boilerplate`). Suppression is prefix-anchored, so a chat
+message that happens to mention the cluster stays a message.
+
+Two other things to note. The banner contains a literal **NUL byte**, which
+the telnet codec now drops. And the server reprints a **command prompt** after
 every command and at idle:
 
 ```

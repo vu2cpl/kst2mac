@@ -233,6 +233,15 @@ Also: a room switch no longer blanks the station table. With a rate limit,
 the replacement roster can be a minute away, and an empty table reads as
 "nobody here" rather than "asking" — it now stays visible and marked.
 
+**2026-08-28, ninth pass — banner noise.** The four-line welcome banner
+repeats verbatim on every `/CHAT` switch, not just at login, so hopping
+rooms filled the chat log with copies of it. The `Welcome …` line is now a
+one-line room divider (`.joined`, which also drives the status bar — after
+a switch it is the first confirmation the server actually moved us), and
+the fixed lines that follow are suppressed (`.boilerplate`). Matching is
+prefix-anchored and tested against a message that mentions the same text,
+so suppression cannot swallow traffic.
+
 ## Open items
 
 1. **Join/leave notices** — shape unknown, so the table only updates on

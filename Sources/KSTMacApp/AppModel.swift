@@ -153,7 +153,14 @@ final class AppModel: ObservableObject {
         case .status(let text):
             status = text
         case .line(let line):
-            if case .roster = line.kind { return }   // the table shows these
+            if case .roster = line.kind { return }        // the table shows these
+            if case .boilerplate = line.kind { return }   // fixed banner text
+            if case .joined(let chat) = line.kind {
+                // The welcome line names the room we actually landed in,
+                // which after a /CHAT switch is the first confirmation
+                // that the server moved us.
+                status = "In \(chat) as \(callsign)"
+            }
             if case .prompt(_, let chat) = line.kind {
                 // Not traffic: it is the server telling us where we are
                 // and what time it thinks it is.

@@ -43,6 +43,20 @@ public struct LineParser {
         options: [.caseInsensitive]
     )
 
+    /// `Welcome Manoj VU2CPL on this 144/432 MHz IARU R 3 amateur chat (by ON4KST)`
+    private static let welcome = try! NSRegularExpression(
+        pattern: #"^\s*Welcome\s+.*?\s+on this\s+(.+?)\s+amateur chat"#,
+        options: [.caseInsensitive]
+    )
+
+    /// The two fixed lines that follow every welcome, plus the web
+    /// pointer that precedes `/HELP` output.
+    private static let boilerplate = [
+        "use the inline",
+        "more info type",
+        "web http://www.on4kst.com",
+    ]
+
     /// A locator anywhere in a line: 4 or 6 characters, e.g. JO20 / MK68qm.
     private static let locator = try! NSRegularExpression(
         pattern: #"\b([A-R]{2}\d{2}(?:[A-X]{2})?)\b"#,
@@ -62,6 +76,16 @@ public struct LineParser {
             return KSTLine(raw: raw,
                            kind: .prompt(callsign: g(2).uppercased(), chat: g(3)),
                            stamp: g(1))
+        }
+
+        if let w = Self.welcome.firstMatch(in: raw, range: range),
+           let r = Range(w.range(at: 1), in: raw) {
+            return KSTLine(raw: raw, kind: .joined(chat: String(raw[r])))
+        }
+
+        let lowered = raw.lowercased().trimmingCharacters(in: .whitespaces)
+        if Self.boilerplate.contains(where: lowered.hasPrefix) {
+            return KSTLine(raw: raw, kind: .boilerplate)
         }
 
         guard let m = Self.message.firstMatch(in: raw, range: range) else {

@@ -78,6 +78,14 @@ public struct KSTLine: Identifiable, Sendable {
         /// `0829Z VU2CPL 144/432 MHz IARU R 3 chat>`. Furniture, not
         /// traffic — kept out of the chat log.
         case prompt(callsign: String, chat: String)
+        /// The server's welcome line, emitted on every join *and* every
+        /// `/CHAT` switch. Rendered as a compact room divider rather than
+        /// as four lines of banner text.
+        case joined(chat: String)
+        /// Fixed banner text that repeats verbatim with every welcome —
+        /// the CLX cluster hint and the "/HELP" pointer. Shown once would
+        /// be generous; shown on every room switch is noise.
+        case boilerplate
         /// A row of `/SHow USer` output. Feeds the station table, not the
         /// chat log.
         case roster(Station)

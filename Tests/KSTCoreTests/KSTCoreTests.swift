@@ -474,3 +474,47 @@ final class RateLimitNoticeTests: XCTestCase {
         XCTAssertNil(ServerNotice.waitSeconds(in: "Please wait for the sked"))
     }
 }
+
+/// The welcome banner repeats verbatim on every join *and* every `/CHAT`
+/// switch, so a session that hops rooms accumulates it. These lines are
+/// all captured verbatim.
+final class BannerTests: XCTestCase {
+
+    private let parser = LineParser()
+
+    func testWelcomeBecomesARoomDivider() {
+        for (line, expected) in [
+            ("Welcome Manoj VU2CPL on this 144/432 MHz amateur chat (by ON4KST)", "144/432 MHz"),
+            ("Welcome Manoj VU2CPL on this 144/432 MHz IARU R 3 amateur chat (by ON4KST)", "144/432 MHz IARU R 3"),
+            ("Welcome Manoj VU2CPL on this 50 MHz IARU Region 2 amateur chat (by ON4KST)", "50 MHz IARU Region 2"),
+        ] {
+            guard case .joined(let chat) = parser.parse(line).kind else {
+                return XCTFail("expected .joined for \(line)")
+            }
+            XCTAssertEqual(chat, expected)
+        }
+    }
+
+    func testFixedBannerTextIsSuppressed() {
+        for line in [
+            "Use the inline ON4KST-2 CLX DX cluster for your spot.",
+            "More info type \"/HELP\"",
+            "Web http://www.on4kst.com",
+        ] {
+            guard case .boilerplate = parser.parse(line).kind else {
+                return XCTFail("expected .boilerplate for \(line)")
+            }
+        }
+    }
+
+    /// Suppression must be narrow: a message that merely mentions the
+    /// cluster is traffic, and the /HELP listing is still shown.
+    func testRealTrafficIsNotSuppressed() {
+        guard case .message = parser.parse("0846Z OZ5QF Jens 2m> use the inline cluster then").kind else {
+            return XCTFail("a message mentioning the banner text must stay a message")
+        }
+        guard case .other = parser.parse("Inline commands available on this chat (by ON4KST):").kind else {
+            return XCTFail("the /HELP header should still be shown")
+        }
+    }
+}
