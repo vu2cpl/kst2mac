@@ -116,14 +116,29 @@ struct ContentView: View {
             // KST2Me uses, and for its reason: conversation is read in
             // sequence, spots and the roster are scanned.
             HSplitView {
-                VSplitView {
-                    ChatPane()
-                        .frame(minHeight: 140)
-                    if showServerLog {
-                        ServerLogPane()
-                            .frame(minHeight: 90, idealHeight: 130)
+                // Chat, then the server log, then the message box at the
+                // very bottom of the column — where an input box belongs.
+                VStack(spacing: 0) {
+                    VSplitView {
+                        ChatPane()
+                            .frame(minHeight: 140)
+                        if showServerLog {
+                            ServerLogPane()
+                                .frame(minHeight: 90, idealHeight: 140)
+                        }
                     }
+                    .frame(maxHeight: .infinity)
+
+                    Divider()
+                    Composer {
+                        // A command's reply goes to the server log, so
+                        // reveal it rather than answering into a pane the
+                        // operator cannot see.
+                        showServerLog = true
+                    }
+                    .layoutPriority(1)
                 }
+                .frame(minWidth: 420)
                 VSplitView {
                     SpotPane()
                         .frame(minHeight: 110, idealHeight: 200)

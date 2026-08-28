@@ -91,6 +91,17 @@ is built around that:
 - `KSTConnection.send(_:)` refuses to write before that point;
 - nothing is ever sent automatically.
 
+## Chat and commands
+
+The message box does both. Plain text goes to the room; text beginning
+`/` is a command to the server — `/SHOW CONFIG`, `/SHOW USER`, `/HELP`,
+`/UNSET DX`. Command replies are private and appear in **Server output**,
+which opens itself when you send one.
+
+Each chat carries only its own bands' DX spots, so a Low Band pane will
+never show a 144 MHz spot. Open a pane per room to feed the relay widely;
+spots are deduplicated across panes.
+
 ## Layout
 
 ```
@@ -130,6 +141,17 @@ See [docs/PROTOCOL.md](docs/PROTOCOL.md) for the full captured command set.
 It prompts for the password with echo off and never writes it to the file.
 Transcripts are git-ignored — they contain whatever the room said while you
 were recording, and the login banner echoes your public IP.
+
+## Chat and commands
+
+The message box does both. Plain text goes to the room; text beginning
+`/` is a command to the server — `/SHOW CONFIG`, `/SHOW USER`, `/HELP`,
+`/UNSET DX`. Command replies are private and appear in **Server output**,
+which opens itself when you send one.
+
+Each chat carries only its own bands' DX spots, so a Low Band pane will
+never show a 144 MHz spot. Open a pane per room to feed the relay widely;
+spots are deduplicated across panes.
 
 ## Layout
 

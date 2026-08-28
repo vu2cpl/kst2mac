@@ -4,7 +4,6 @@ import KSTCore
 struct ChatPane: View {
     @EnvironmentObject private var model: AppModel
     @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
-    @FocusState private var composerFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,11 +24,8 @@ struct ChatPane: View {
                 }
             }
 
-            Divider()
-            Composer(focused: $composerFocused)
-                .layoutPriority(1)      // never squeezed out by the log
         }
-        .frame(minWidth: 480, minHeight: 300)
+        .frame(minWidth: 420, minHeight: 140)
     }
 }
 
@@ -184,14 +180,33 @@ private struct LineRow: View {
     }
 }
 
-private struct Composer: View {
+/// The message box. Lives at the foot of the whole left column rather
+/// than inside the chat pane, so it sits below the server log instead of
+/// between the two — an input box in the middle of a column reads wrong.
+struct Composer: View {
+    /// Called when what was sent was a command, so the caller can reveal
+    /// the server log: a `/` reply lands there, and typing a command into
+    /// a pane you cannot see is no use.
+    var onCommandSent: (() -> Void)?
+
     @EnvironmentObject private var model: AppModel
     @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
-    @FocusState.Binding var focused: Bool
+    @FocusState private var focused: Bool
+
+    /// A leading `/` makes it a command to the server rather than a
+    /// message to the room — the reply comes back privately, into the
+    /// server log.
+    private var isCommand: Bool { model.draft.hasPrefix("/") }
+
+    private func send() {
+        let wasCommand = isCommand
+        model.sendDraft()
+        if wasCommand { onCommandSent?() }
+    }
 
     var body: some View {
         HStack(spacing: 8) {
-            if let to = model.directedTo {
+            if let to = model.directedTo, !isCommand {
                 HStack(spacing: 4) {
                     Text(model.replyWithPreamble ? to : "/CQ \(to)")
                         .font(Typography.mono(11, scale, weight: .semibold))
@@ -214,12 +229,13 @@ private struct Composer: View {
                       : "/CQ — highlights for every chat user")
             }
 
-            TextField("Message", text: $model.draft)
+            TextField(model.draft.hasPrefix("/") ? "Command" : "Message",
+                      text: $model.draft)
                 .font(Typography.text(13, scale))
                 .textFieldStyle(.roundedBorder)
                 .focused($focused)
                 .disabled(!model.isInChat)
-                .onSubmit { model.sendDraft() }
+                .onSubmit(send)
 
             Button {
                 model.loadBacklog()
@@ -230,7 +246,7 @@ private struct Composer: View {
             .disabled(!model.isInChat)
             .help("Fetch recent messages (/SHOW MSG). Uses one of the server's ~1-per-minute command slots.")
 
-            Button("Send") { model.sendDraft() }
+            Button("Send", action: send)
                 .buttonStyle(.borderedProminent)
                 .tint(model.directedTo == nil ? Palette.utc : Palette.directedBar)
                 .disabled(!model.isInChat || model.draft.trimmingCharacters(in: .whitespaces).isEmpty)

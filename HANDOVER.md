@@ -724,6 +724,30 @@ forwards the original line verbatim — so every field is optional and the
 raw line is always kept: a display slip must never become a data one.
 Spots are newest-first, because nobody scrolls a cluster feed to catch up.
 
+**2026-08-28, twenty-ninth pass — the message box in the wrong place.**
+Splitting the panes left the composer inside `ChatPane`, so with the
+server log open the input box sat *between* the two logs. An input box in
+the middle of a column reads wrong: it belongs at the foot of everything
+it writes into.
+
+`Composer` moved out of `ChatPane` to the bottom of the left column, so
+the order is chat, server log, input.
+
+It also now knows what it is sending. A leading `/` makes it a command to
+the server rather than a message to the room — the placeholder changes to
+"Command", the `/CQ` recipient chip is hidden (a command is not addressed
+to anyone), and sending one **opens the server log**, because that is
+where the reply lands and typing a command into a pane you cannot see is
+no use.
+
+Worth recording: `/SHow CONFig` reports `DXCLX ON, ANN ON`, so the DX flag
+**is** stored per account and survives reconnects — the automatic
+`/SET DXCLX` on join is belt-and-braces rather than required. The same
+output shows `Accepted QRG for DX spots: 137 KHz 1.8 MHz 3.5 MHz` in the
+Low Band room: **each chat only carries spots for its own bands**. Feeding
+dxca broadly therefore means panes in several rooms, which the shared
+relay already handles and dedupes.
+
 ## Open items
 
 **Ready to build**
