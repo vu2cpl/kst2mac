@@ -1,4 +1,4 @@
-# KST Mac — Project Handover
+# KST2Mac — Project Handover
 *For continuation in a new Claude session*
 
 **Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.3 — login, roster and message parsing all verified against live traffic
@@ -11,14 +11,18 @@ A native macOS SwiftUI client for the ON4KST VHF/UHF/microwave/EME chat.
 Same shape as `DXClusterAggregator` and `SkimServer Mac`: SwiftPM package,
 `build_app.sh` producing an ad-hoc-signed `.app`, no Xcode project.
 
-Written fresh from the protocol — **not** a fork or port of KST2Me,
-EA6VQ's client, or Tučňák's chat pane, so no credit line is owed. If that
-ever changes, the shack credit rule applies.
+Named after and modelled on **KST2Me by Bo OZ2M**. The protocol work is
+original — written from captures of the live service, not from KST2Me's
+source, which was never consulted — but the name is a play on its, and the
+highlight conventions (`/CQ` / preamble / watches, their precedence and
+their colours) come straight from OZ2M's manual. The credit line is in the
+README and belongs anywhere this project is described publicly, per the
+shack credit rule.
 
 ## Current state
 
 `swift build` and `swift test` are clean (15 tests). `./build_app.sh`
-produces `build/KST Mac.app`, verified to launch and render.
+produces `build/KST2Mac.app`, verified to launch and render.
 
 **Working:** connect / login / join a room, live chat pane with own-call
 highlighting, composer with `/CQ` directed messages, station table with
@@ -284,7 +288,7 @@ requested on first connect rather than at launch, so the prompt arrives
 when there is something to be notified about. `Notifier` no-ops entirely
 when `Bundle.main.bundleIdentifier` is nil, because
 `UNUserNotificationCenter.current()` **traps** in a process without one —
-which is exactly what `swift run KSTMac` is. Do not remove that guard or
+which is exactly what `swift run KST2Mac` is. Do not remove that guard or
 command-line runs start crashing.
 
 Multiple windows required a restructure. `AppModel.room` was
@@ -372,6 +376,22 @@ reject a prefix match (`VU2CPLX`) and survive callsign punctuation (`/P`,
 Also: clicking a callsign in the log addresses your next message to them,
 as KST2Me does.
 
+**2026-08-28, fifteenth pass — renamed to KST2Mac.** `~/projects/kst-mac`
+→ `~/projects/kst2mac`, product and bundle `KSTMac` → `KST2Mac`,
+`net.vu2cpl.kstmac` → `net.vu2cpl.kst2mac`.
+
+A bundle identifier **is** the preferences domain and the Keychain
+namespace, so the rename would have silently dropped the operator's
+callsign, locator, watches and saved password and looked like a fresh
+install. `Migration.swift` carries them over once, copying only where the
+new domain is empty and never deleting the old values so a downgrade still
+finds its settings. Its two `old…` constants must never be caught by a
+find-and-replace — they are the only route back. A blanket rename pass did
+exactly that and had to be undone.
+
+The name being a play on KST2Me's brings the shack credit rule into scope;
+the README now credits OZ2M.
+
 ## Open items
 
 1. **Is the command rate limit per connection or per callsign?** With
@@ -383,7 +403,7 @@ as KST2Me does.
    the 60s roster poll. Needs a longer capture.
 3. **`/SHow DX` spot format** — now wanted, to bridge spots into dxca.
    dxca ingests via `[[cluster_nodes]]` (host/port/login_call), so the
-   clean shape is for KST Mac to *serve* a small DX-cluster telnet node
+   clean shape is for KST2Mac to *serve* a small DX-cluster telnet node
    that dxca dials, rather than inventing a private channel. Spots arrive
    disabled (`DX OFF`), so a capture with `/SET DX` — and especially
    `/SET DXCLX`, which the help says gives "CLX format" and may already be

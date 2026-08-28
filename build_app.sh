@@ -1,14 +1,14 @@
 #!/bin/bash
-# Build KST Mac as a standalone .app bundle for drag-to-Applications install.
+# Build KST2Mac as a standalone .app bundle for drag-to-Applications install.
 #
-# Output: build/KST Mac.app
+# Output: build/KST2Mac.app
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
-APP_NAME="KST Mac"
+APP_NAME="KST2Mac"
 APP_BUNDLE_DIR="build/${APP_NAME}.app"
-BIN_NAME="KSTMac"
+BIN_NAME="KST2Mac"
 
 echo ">> swift build -c release"
 swift build -c release
@@ -35,7 +35,7 @@ if [ -f "$ICON_SRC" ]; then
 fi
 
 cp ".build/release/$BIN_NAME" "$APP_BUNDLE_DIR/Contents/MacOS/$BIN_NAME"
-cp Sources/KSTMacApp/Info.plist "$APP_BUNDLE_DIR/Contents/Info.plist"
+cp Sources/KST2MacApp/Info.plist "$APP_BUNDLE_DIR/Contents/Info.plist"
 
 PB="/usr/libexec/PlistBuddy"
 $PB -c "Add :CFBundleExecutable string $BIN_NAME" "$APP_BUNDLE_DIR/Contents/Info.plist" 2>/dev/null \
@@ -49,7 +49,7 @@ fi
 # Ad-hoc sign so Gatekeeper lets it launch locally. The entitlements file
 # only asks for outgoing network access; the app is not sandboxed because
 # it needs the Keychain item and a plain TCP socket.
-ENTITLEMENTS_FILE="KSTMac.entitlements"
+ENTITLEMENTS_FILE="KST2Mac.entitlements"
 ENTITLEMENTS_ARGS=()
 [ -f "$ENTITLEMENTS_FILE" ] && ENTITLEMENTS_ARGS=(--entitlements "$ENTITLEMENTS_FILE")
 codesign --force --sign - "${ENTITLEMENTS_ARGS[@]}" "$APP_BUNDLE_DIR/Contents/MacOS/$BIN_NAME" 2>&1 | tail -2 || true

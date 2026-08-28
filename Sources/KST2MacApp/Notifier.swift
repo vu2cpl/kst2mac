@@ -22,7 +22,7 @@ final class Notifier {
 
     /// `UNUserNotificationCenter.current()` traps outright in a process
     /// with no bundle identifier — which is exactly what `swift run
-    /// KSTMac` is. Everything here is a no-op in that case so the app
+    /// KST2Mac` is. Everything here is a no-op in that case so the app
     /// stays runnable from the command line for development.
     private var available: Bool { Bundle.main.bundleIdentifier != nil }
 

@@ -2,7 +2,12 @@ import SwiftUI
 import KSTCore
 
 @main
-struct KSTMacApp: App {
+struct KST2MacApp: App {
+
+    init() {
+        // Before any @AppStorage is read.
+        Migration.runIfNeeded()
+    }
 
     var body: some Scene {
         // A plain WindowGroup, so File ▸ New chat window opens another
@@ -50,7 +55,7 @@ struct ChatWindow: View {
             .prefix(showSecond ? 2 : 1)
             .filter(\.isInChat)
             .map(\.room.title)
-        return rooms.isEmpty ? "KST Mac" : rooms.joined(separator: "  ·  ")
+        return rooms.isEmpty ? "KST2Mac" : rooms.joined(separator: "  ·  ")
     }
 
     var body: some View {

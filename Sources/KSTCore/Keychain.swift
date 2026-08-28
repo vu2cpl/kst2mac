@@ -8,7 +8,7 @@ import Security
 /// also leave it sitting in a preferences plist.
 public enum Keychain {
 
-    public static let service = "net.vu2cpl.kstmac.on4kst"
+    public static let service = "net.vu2cpl.kst2mac.on4kst"
 
     public static func setPassword(_ password: String, account: String) throws {
         let account = account.uppercased()
@@ -30,7 +30,9 @@ public enum Keychain {
         guard status == errSecSuccess else { throw KeychainError(status: status) }
     }
 
-    public static func password(account: String) -> String? {
+    /// - Parameter service: overridable so a rename can carry the
+    ///   password over from the previous bundle identifier's namespace.
+    public static func password(account: String, service: String = Keychain.service) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,

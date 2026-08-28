@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "KSTMac",
+    name: "KST2Mac",
     platforms: [.macOS(.v13)],
     products: [
         // The app itself.
-        .executable(name: "KSTMac", targets: ["KSTMacApp"]),
+        .executable(name: "KST2Mac", targets: ["KST2MacApp"]),
         // Headless transcript recorder — connects, logs in, dumps every
         // byte the server sends to a file so the line parser can be
         // written against real traffic instead of guesses. See
@@ -18,9 +18,9 @@ let package = Package(
         // Maidenhead maths. No AppKit/SwiftUI — unit-testable on its own.
         .target(name: "KSTCore", path: "Sources/KSTCore"),
         .executableTarget(
-            name: "KSTMacApp",
+            name: "KST2MacApp",
             dependencies: ["KSTCore"],
-            path: "Sources/KSTMacApp",
+            path: "Sources/KST2MacApp",
             exclude: ["Info.plist"]
         ),
         .executableTarget(

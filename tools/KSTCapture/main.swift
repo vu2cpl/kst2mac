@@ -49,11 +49,16 @@ if args.contains("-h") || args.contains("--help") {
       --out      Transcript path (default kst-transcript.txt)
       --seconds  How long to record after login (default 120)
       --quiet    Do not mirror the traffic to the terminal
-      --probe    After joining, run the read-only commands whose output
-                 format we still need: /SHOW USER, /SHOW MSG 15,
-                 /SHOW CONFIG, /HELP. All four reply privately to your own
-                 terminal -- none of them post to the room. Off by default
-                 so nothing reaches the connection unless you ask.
+      --probe    After joining, run the commands whose output format we
+                 still need: /SET DXCLX, /SHOW DX 10, /SET DX, /SHOW DX 10,
+                 /SHOW USER, /SHOW CONFIG. All reply privately to your own
+                 terminal -- none post to the room. The two /SET commands
+                 change your own spot preferences on the server (DX spots
+                 start OFF); /UNSET DX puts them back. Off by default so
+                 nothing reaches the connection unless you ask.
+
+                 The server allows about one command a minute, so a probe
+                 run needs --seconds 420 or more to get through them all.
 
     The password is prompted for with echo off and never written to the
     transcript. Read what lands in the file before sharing it — it contains
@@ -68,7 +73,7 @@ guard let call = option("--call")?.uppercased() else {
 }
 let room = ChatRoom(rawValue: Int(option("--room") ?? "9") ?? 9) ?? .vhfUhfRegion3
 let outPath = option("--out") ?? "kst-transcript.txt"
-let seconds = Double(option("--seconds") ?? "120") ?? 120
+let seconds = Double(option("--seconds") ?? (args.contains("--probe") ? "480" : "120")) ?? 120
 
 let password = readSecret("ON4KST password for \(call): ")
 guard !password.isEmpty else {
@@ -119,10 +124,19 @@ Task {
                 // the commands whose *output format* we still need to see.
                 // All four reply to us privately; none post to the room.
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
-                for command in ["/SHOW USER", "/SHOW MSG 15", "/SHOW CONFIG", "/HELP"] {
+                // DXCLX first: /HELP calls it "CLX format", which may
+                // already be standard `DX de ...` cluster lines. If so a
+                // bridge into dxca is a relay, not a re-encoding. /SET DX
+                // is the plain format for comparison; spots arrive
+                // disabled (DX OFF) so one of these must be sent before
+                // /SHOW DX returns anything at all.
+                for command in ["/SET DXCLX", "/SHOW DX 10", "/SET DX", "/SHOW DX 10",
+                                "/SHOW USER", "/SHOW CONFIG"] {
                     note("[sending \(command)]")
                     conn.send(command)
-                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    // One command per minute is the server's limit; a
+                    // shorter gap just collects "Please wait" notices.
+                    try? await Task.sleep(nanoseconds: 62_000_000_000)
                 }
             }
         case .disconnected(let r):  note("[disconnected: \(r ?? "clean")]")

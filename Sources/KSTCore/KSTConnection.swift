@@ -32,7 +32,7 @@ public final class KSTConnection: @unchecked Sendable {
 
     private let host: String
     private let port: UInt16
-    private let queue = DispatchQueue(label: "net.vu2cpl.kstmac.connection")
+    private let queue = DispatchQueue(label: "net.vu2cpl.kst2mac.connection")
     private let parser = LineParser()
 
     private var connection: NWConnection?

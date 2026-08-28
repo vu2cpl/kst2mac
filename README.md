@@ -1,12 +1,16 @@
-# KST Mac
+# KST2Mac
 
 Native macOS SwiftUI client for the [ON4KST](https://www.on4kst.info/) VHF /
 UHF / microwave / EME chat — the DX-liaison chat VHF operators keep open
 next to the radio during a lift or a contest.
 
-Written fresh against the chat's telnet protocol; not a port of KST2Me or
-any other existing client (see [docs/PROTOCOL.md](docs/PROTOCOL.md) for the
-prior art).
+Named after and modelled on [KST2Me](https://www.rudius.net/oz2m/software/kst2me)
+by Bo **OZ2M**, the long-standing Windows client. The protocol work here is
+original — written from packet captures of the live service, see
+[docs/PROTOCOL.md](docs/PROTOCOL.md) — but the interaction design follows
+OZ2M's, and the highlight conventions it implements (`/CQ`, preamble,
+watches, and their precedence and colours) are taken directly from the
+KST2Me manual so that operators who know one can read the other.
 
 ## Status
 
@@ -41,7 +45,7 @@ table with distance and beam heading from your own square.
 ## Build and run
 
 ```bash
-swift build && swift run KSTMac
+swift build && swift run KST2Mac
 ```
 
 For a drag-to-Applications bundle:
@@ -50,7 +54,7 @@ For a drag-to-Applications bundle:
 ./build_app.sh
 ```
 
-Then `cp -R "build/KST Mac.app" /Applications/`.
+Then `cp -R "build/KST2Mac.app" /Applications/`.
 
 Tests:
 
@@ -94,7 +98,7 @@ Sources/KSTCore/       protocol layer — no UI, unit-testable
   Maidenhead.swift     locator → lat/lon, distance, bearing
   Keychain.swift       password storage
   Models.swift         ChatRoom, KSTLine, Station, KSTEvent
-Sources/KSTMacApp/     SwiftUI app
+Sources/KST2MacApp/     SwiftUI app
 tools/KSTCapture/      transcript recorder for protocol work
 docs/PROTOCOL.md       what's verified vs inferred about the protocol
 ```
@@ -109,7 +113,7 @@ join/leave notices and the `/SHow DX` spot format.
 To capture more, record a transcript —
 
 ```bash
-swift run KSTCapture --call VU2CPL --room 2 --seconds 120 --probe
+swift run KSTCapture --call VU2CPL --room 2 --probe
 ```
 
 — and the roster parser can be written against real bytes. `--probe` runs
