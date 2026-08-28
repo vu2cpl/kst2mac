@@ -13,8 +13,12 @@ struct StationPane: View {
                 TableColumn("Call") { s in
                     HStack(spacing: 4) {
                         Text(s.callsign)
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundStyle(s.isAway ? .secondary : .primary)
+                            .font(.system(.body, design: .monospaced).weight(.medium))
+                            // Same colour the callsign has in the log, so
+                            // the two panes read as one thing.
+                            .foregroundStyle(s.isAway
+                                             ? AnyShapeStyle(.secondary)
+                                             : AnyShapeStyle(Palette.color(for: s.callsign)))
                         if s.isAway {
                             Image(systemName: "moon.zzz")
                                 .font(.caption2)
@@ -36,8 +40,11 @@ struct StationPane: View {
                 .width(min: 56)
 
                 TableColumn("km") { s in
-                    Text(model.path(to: s).map { String(format: "%.0f", $0.distanceKm) } ?? "")
+                    let path = model.path(to: s)
+                    Text(path.map { String(format: "%.0f", $0.distanceKm) } ?? "")
                         .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(path.map { AnyShapeStyle(Palette.distance($0.distanceKm)) }
+                                         ?? AnyShapeStyle(.secondary))
                 }
                 .width(min: 48)
 

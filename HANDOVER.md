@@ -251,6 +251,30 @@ statusBar }`, and the composer carries `layoutPriority(1)` plus a minimum
 height so the log can never squeeze it out. Worth remembering before
 reaching for `safeAreaInset` over any split view.
 
+**2026-08-28, eleventh pass — colour.** The window was legible but flat.
+The colour added is meant to carry information rather than decorate:
+
+- **Callsign identity.** Each callsign gets a stable colour from an FNV-1a
+  hash into a twelve-entry palette, and wears it in *both* the chat log and
+  the station table — so a conversation can be followed down the log and
+  tied to its row in the table. Stability across sessions is the whole
+  point; changing the palette order retroactively changes what colours
+  mean, so treat it as fixed.
+- **Distance shading** in the km column, warm (near) to cool (far).
+  Deliberately a plain perceptual ramp, *not* a claim about what is
+  workable — the same table serves 160 m and 10 GHz.
+- **Grids and frequencies** tinted inside message text (`MessageText`).
+  Only those two: chat prose is full of numbers ("420/5db", "2x10",
+  "160/1") and a highlighter that fires on all of them tints the whole
+  line, which is the same as tinting none of it. Frequencies need a
+  decimal point for that reason.
+- **Mentions** get an accent bar down the left edge as well as a wash, so
+  a line naming you is findable while scrolling.
+
+Palette entries are picked to stay legible on both the light and dark
+system backgrounds — the app follows the system appearance and has no
+theme of its own.
+
 ## Open items
 
 1. **Join/leave notices** — shape unknown, so the table only updates on

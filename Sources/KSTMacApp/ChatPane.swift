@@ -40,39 +40,60 @@ private struct LineRow: View {
         switch line.kind {
         case .message(let from, let name, let to, let text):
             HStack(alignment: .firstTextBaseline, spacing: 6) {
+                // A left bar rather than only a wash, so a line naming you
+                // is findable while scrolling fast.
+                Rectangle()
+                    .fill(highlighted ? Palette.mentionBar : .clear)
+                    .frame(width: 2)
+
                 Text(line.stamp ?? "")
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.tertiary)
-                    .frame(width: 42, alignment: .leading)
+                    .frame(width: 46, alignment: .leading)
+
                 Text(from)
                     .font(.system(.body, design: .monospaced).weight(.semibold))
-                if let name { Text(name).foregroundStyle(.secondary) }
-                if let to {
-                    Text("→ \(to)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.blue)
+                    .foregroundStyle(Palette.color(for: from))
+
+                if let name {
+                    Text(name)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
-                Text(text)
+                if let to {
+                    Text(to)
+                        .font(.system(.caption, design: .monospaced).weight(.semibold))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Palette.color(for: to).opacity(0.22), in: Capsule())
+                        .foregroundStyle(Palette.color(for: to))
+                }
+
+                Text(MessageText.attributed(text))
                     .textSelection(.enabled)
+
                 Spacer(minLength: 0)
             }
-            .padding(.vertical, 1)
-            .padding(.horizontal, 4)
-            .background(highlighted ? Color.yellow.opacity(0.18) : .clear)
-            .cornerRadius(4)
+            .padding(.vertical, 1.5)
+            .padding(.trailing, 4)
+            .background(highlighted ? Palette.mentionFill : .clear)
 
         case .joined(let chat):
             // One divider per join or /CHAT switch, instead of a
             // four-line banner every time.
             HStack(spacing: 8) {
                 VStack { Divider() }
-                Text(chat)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                Text(chat.uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.14), in: Capsule())
                     .fixedSize()
                 VStack { Divider() }
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 7)
 
         case .boilerplate:
             EmptyView()
