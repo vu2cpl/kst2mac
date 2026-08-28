@@ -820,9 +820,25 @@ cover the menu lines that were being accepted.
 
 **Deferred**
 
-6. **Notarisation** (`notarize.sh`, as in the sibling Mac apps) — only
-   needed if this is ever distributed beyond the shack. Ad-hoc signing is
-   fine locally.
+6. **Notarisation and publishing.** Three things need doing beyond
+   copying `notarize.sh` from the sibling apps:
+
+   - **Universal binary.** `build_app.sh` runs a plain `swift build -c
+     release`, so the app is arm64-only and will not launch on an Intel
+     Mac. `DXClusterAggregator` ships
+     `…-notarized-universal.zip`; this needs
+     `--arch arm64 --arch x86_64` and a matching `lipo`/copy step.
+   - **Hardened runtime.** Notarisation requires `codesign --options
+     runtime` and a Developer ID Application certificate — the current
+     signature is ad-hoc, which is fine locally and rejected by
+     notarytool. Entitlements are unsandboxed with
+     `com.apple.security.network.client`; that is enough. If the app is
+     ever sandboxed, the spot relay listens on a socket and would then
+     also need `com.apple.security.network.server`.
+   - **Publishing.** The repo is private and stays private until
+     explicitly told otherwise. The OZ2M credit is already in the README
+     and belongs on any vu2cpl.com card too — the name is a play on
+     KST2Me's and the highlight conventions come from its manual.
 7. **Map view** — explicitly out of scope at v0.1 and still is.
 
 ## Gotchas
