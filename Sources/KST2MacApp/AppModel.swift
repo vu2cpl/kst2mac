@@ -74,8 +74,17 @@ final class AppModel: ObservableObject {
     /// highlights for clients that implement the convention.
     @AppStorage("replyWithPreamble") var replyWithPreamble: Bool = false
 
-    /// Cap the scrollback so a long session doesn't grow without bound.
+    /// Three streams, not one.
+    ///
+    /// Conversation, DX spots and raw server output are different kinds
+    /// of thing read in different ways — mixing them made the window a
+    /// jumble. KST2Me separates them for the same reason.
+    @Published private(set) var spots: [SpotRecord] = []
+    @Published private(set) var serverLines: [KSTLine] = []
+
+    /// Cap each so a long session doesn't grow without bound.
     private let maxLines = 5000
+    private let maxSpots = 500
 
     private var connection: KSTConnection?
     private var pump: Task<Void, Never>?
@@ -230,6 +239,14 @@ final class AppModel: ObservableObject {
                 // Verbatim to any connected cluster client. Nothing is
                 // re-encoded — that is the whole point of the relay.
                 SpotRelayHost.shared.broadcast(canonical)
+                // Newest first: a spot list is read from the top, and
+                // nobody scrolls a cluster feed to catch up.
+                let record = SpotParser.parse(canonical)
+                if !spots.contains(record) {
+                    spots.insert(record, at: 0)
+                    if spots.count > maxSpots { spots.removeLast(spots.count - maxSpots) }
+                }
+                return
             }
             if case .roster = line.kind { return }        // the table shows these
             if case .boilerplate = line.kind { return }   // fixed banner text
@@ -300,7 +317,20 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func append(_ line: KSTLine) {
+    private func appendToLog(_ line: KSTLine) {
+        // Server chatter — banners, /HELP, command replies, our own
+        // notices — goes to its own log, out of the conversation.
+        switch line.kind {
+        case .other, .local:
+            serverLines.append(line)
+            if serverLines.count > maxLines {
+                serverLines.removeFirst(serverLines.count - maxLines)
+            }
+            return
+        default:
+            break
+        }
+
         switch emphasis(for: line) {
         case .directed, .preamble:
             let kind = emphasis(for: line)
@@ -321,6 +351,8 @@ final class AppModel: ObservableObject {
             lines.removeFirst(lines.count - maxLines)
         }
     }
+
+    private func append(_ line: KSTLine) { appendToLog(line) }
 
     private func upsert(_ station: Station) {
         if let i = stations.firstIndex(where: { $0.callsign == station.callsign }) {

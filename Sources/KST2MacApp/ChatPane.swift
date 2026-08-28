@@ -135,24 +135,9 @@ private struct LineRow: View {
         case .boilerplate:
             EmptyView()
 
-        case .spot(let canonical):
-            HStack(alignment: .top, spacing: 6) {
-                Text("DX")
-                    .font(Typography.mono(9, scale, weight: .semibold))
-                    .foregroundStyle(Palette.callsignTint)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(Palette.callsignTint.opacity(0.18), in: RoundedRectangle(cornerRadius: 3))
-                ScrollView(.horizontal, showsIndicators: false) {
-                    Text(canonical)
-                        .font(Typography.mono(11, scale))
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .lineLimit(1)
-                        .fixedSize()
-                }
-            }
-            .padding(.vertical, 1)
+        case .spot:
+            // Shown in the DX spots pane.
+            EmptyView()
 
         case .roster:
             // Belongs in the station table, not the chat log.
@@ -163,11 +148,20 @@ private struct LineRow: View {
             EmptyView()
 
         case .local:
-            Text(line.raw)
-                .font(Typography.text(12, scale))
-                .foregroundStyle(.orange)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // Routed to the server log; nothing to draw here.
+            EmptyView()
+
+        case .other:
+            // Shown in the server log pane.
+            EmptyView()
+
+        case .prompt:
+            // Server furniture — the chat log stays traffic only.
+            EmptyView()
+
+        case .local:
+            // Routed to the server log; nothing to draw here.
+            EmptyView()
 
         case .other:
             // Unclassified server output — shown verbatim rather than

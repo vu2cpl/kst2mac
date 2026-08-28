@@ -703,6 +703,27 @@ immediately, rather than waiting for a reconnect.
 Panes do **not** send it when the relay is off: nothing is listening, and
 it would be changing the operator's server-side preferences for no reason.
 
+**2026-08-28, twenty-eighth pass — one window, four streams.** Messages,
+DX spots and raw server output were all landing in the same log, which
+made the window a jumble. They are different kinds of thing: conversation
+is read in sequence, spots and the roster are *scanned*, and the raw feed
+matters only when something is wrong.
+
+Layout now follows KST2Me — chat left, **DX spots** top right, **stations**
+bottom right — with the raw feed behind a terminal toggle in the pane
+header, off by default and remembered per pane.
+
+`AppModel` keeps three streams instead of one: `lines` (conversation),
+`spots`, `serverLines`. Anything `.other` or `.local` is routed to the
+server log rather than the chat, which is what took the banners, `/HELP`
+output, command replies and our own notices out of the conversation.
+
+`SpotRecord` / `SpotParser` split a spot into frequency, DX call, comment,
+spotter and time for the table. **The relay does not use it** — it still
+forwards the original line verbatim — so every field is optional and the
+raw line is always kept: a display slip must never become a data one.
+Spots are newest-first, because nobody scrolls a cluster feed to catch up.
+
 ## Open items
 
 **Ready to build**

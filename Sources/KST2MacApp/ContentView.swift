@@ -11,6 +11,9 @@ struct ContentView: View {
     @EnvironmentObject private var model: AppModel
     @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
     @State private var showLogin = false
+    /// Per pane, and off by default: the raw feed is for when something
+    /// is wrong, not for reading.
+    @SceneStorage("showServerLog") private var showServerLog = false
 
     /// One colour carries connection state through the whole pane — the
     /// header edge, the status dot and the status text — so a glance at
@@ -63,6 +66,15 @@ struct ContentView: View {
             .frame(width: 190 * min(Typography.clamped(scale), 1.35))
             .help("Switches room in place while connected (/CHAT)")
 
+            Button {
+                showServerLog.toggle()
+            } label: {
+                Image(systemName: "terminal")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(showServerLog ? Palette.utc : .secondary)
+            .help("Show the raw server output — banners, /HELP, command replies")
+
             if let onFloat {
                 Button("Float", systemImage: "macwindow.on.rectangle", action: onFloat)
                     .help("Move this chat into its own window, keeping the connection")
@@ -100,10 +112,25 @@ struct ContentView: View {
         VStack(spacing: 0) {
             header
             Divider()
+            // Chat left, spots and stations stacked right — the layout
+            // KST2Me uses, and for its reason: conversation is read in
+            // sequence, spots and the roster are scanned.
             HSplitView {
-                ChatPane()
-                StationPane()
-                    .frame(minWidth: 340, idealWidth: 420)
+                VSplitView {
+                    ChatPane()
+                        .frame(minHeight: 140)
+                    if showServerLog {
+                        ServerLogPane()
+                            .frame(minHeight: 90, idealHeight: 130)
+                    }
+                }
+                VSplitView {
+                    SpotPane()
+                        .frame(minHeight: 110, idealHeight: 200)
+                    StationPane()
+                        .frame(minHeight: 140)
+                }
+                .frame(minWidth: 360, idealWidth: 460)
             }
             .frame(maxHeight: .infinity)
         }

@@ -689,3 +689,55 @@ final class RelayPromptTests: XCTestCase {
         XCTAssertEqual(stamp.count, 17, "expected dd-MMM-yyyy HHmmZ, got \(stamp)")
     }
 }
+
+/// Spot fields for display. Lines are captured from a live session; the
+/// relay forwards the original untouched, so a parsing slip here is a
+/// cosmetic bug, never a data one.
+final class SpotParserTests: XCTestCase {
+
+    func testCLXColumns() {
+        let s = SpotParser.parse("DX de w9ffa:      3573.6  KS0AA        FT8, EM69ij <-> EM28           1241Z")
+        XCTAssertEqual(s.spotter, "W9FFA")
+        XCTAssertEqual(s.frequency, 3573.6)
+        XCTAssertEqual(s.dx, "KS0AA")
+        XCTAssertEqual(s.comment, "FT8, EM69ij <-> EM28")
+        XCTAssertEqual(s.time, "1241Z")
+    }
+
+    func testEmptyComment() {
+        let s = SpotParser.parse("DX de na6jd:      3573.0  CX6TU                                       0948Z")
+        XCTAssertEqual(s.dx, "CX6TU")
+        XCTAssertEqual(s.comment, "")
+        XCTAssertEqual(s.time, "0948Z")
+    }
+
+    /// The single-spaced `/SET DX` form has no columns left to rely on.
+    func testSingleSpacedForm() {
+        let s = SpotParser.parse("DX de nl7m: 1824.5 FK8HC cq")
+        XCTAssertEqual(s.spotter, "NL7M")
+        XCTAssertEqual(s.frequency, 1824.5)
+        XCTAssertEqual(s.dx, "FK8HC")
+        XCTAssertEqual(s.comment, "cq")
+    }
+
+    func testPortableAndSuffixedCallsigns() {
+        let s = SpotParser.parse("DX de oh2oja:     3685.0  OH2OJA/P     WWFF OHFF-1051                 1235Z")
+        XCTAssertEqual(s.dx, "OH2OJA/P")
+        XCTAssertEqual(s.comment, "WWFF OHFF-1051")
+    }
+
+    /// Microwave frequencies run to eight digits; nothing may truncate.
+    func testMicrowaveFrequency() {
+        let s = SpotParser.parse("DX de g4loh:    10368200.0  PA0EHG   jt4f                    1102Z")
+        XCTAssertEqual(s.frequency, 10368200.0)
+        XCTAssertEqual(s.dx, "PA0EHG")
+    }
+
+    /// An unparseable line keeps its text rather than vanishing.
+    func testUnparseableLineIsKeptWhole() {
+        let odd = "DX de something entirely unexpected"
+        let s = SpotParser.parse(odd)
+        XCTAssertEqual(s.raw, odd)
+        XCTAssertFalse(s.raw.isEmpty)
+    }
+}

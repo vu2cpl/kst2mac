@@ -131,6 +131,13 @@ It prompts for the password with echo off and never writes it to the file.
 Transcripts are git-ignored — they contain whatever the room said while you
 were recording, and the login banner echoes your public IP.
 
+## Layout
+
+Each pane shows chat on the left, with **DX spots** above **stations** on
+the right — the arrangement KST2Me uses. Raw server output (banners,
+`/HELP`, command replies) is behind the terminal button in the pane
+header, off by default.
+
 ## Windows and panes
 
 **+** in the toolbar adds a chat pane below, with its own room, roster and
