@@ -45,8 +45,16 @@ struct StationPane: View {
 
             Divider()
             HStack {
-                Text("\(model.stations.count) heard")
+                Text("\(model.stations.count) present")
                     .font(.caption).foregroundStyle(.secondary)
+                Button {
+                    model.refreshRoster()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.plain)
+                .disabled(!model.isInChat)
+                .help("Ask the server who is present (/SHOW USER)")
                 Spacer()
                 if model.homeGrid.isEmpty {
                     Text("Set your locator in Settings for distances")

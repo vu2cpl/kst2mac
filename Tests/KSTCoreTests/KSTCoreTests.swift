@@ -216,3 +216,62 @@ final class LineAccumulatorTests: XCTestCase {
         XCTAssertTrue(LoginPrompt.password.matches("Password:"))
     }
 }
+
+final class RosterParserTests: XCTestCase {
+
+    /// The real `/SHow USer` row, byte-for-byte: callsign left-justified
+    /// in 17 columns, then locator, then name.
+    func testParsesCapturedRow() throws {
+        let s = try XCTUnwrap(RosterParser.parse("VU2CPL           MK83TE Manoj"))
+        XCTAssertEqual(s.callsign, "VU2CPL")
+        XCTAssertEqual(s.locator, "MK83te")
+        XCTAssertEqual(s.name, "Manoj")
+    }
+
+    /// A callsign long enough to overrun the 17-column field must still
+    /// parse — which is why this splits on whitespace, not by offset.
+    func testLongCallsignOverrunningTheColumn() throws {
+        let s = try XCTUnwrap(RosterParser.parse("SV1DH/P   KM17uw Costas"))
+        XCTAssertEqual(s.callsign, "SV1DH/P")
+        XCTAssertEqual(s.locator, "KM17uw")
+        XCTAssertEqual(s.name, "Costas")
+    }
+
+    func testMissingLocator() throws {
+        let s = try XCTUnwrap(RosterParser.parse("G4XYZ            Dave"))
+        XCTAssertEqual(s.callsign, "G4XYZ")
+        XCTAssertNil(s.locator)
+        XCTAssertEqual(s.name, "Dave")
+    }
+
+    func testMultiWordName() throws {
+        let s = try XCTUnwrap(RosterParser.parse("F6ABC            JN18cx Jean Pierre"))
+        XCTAssertEqual(s.locator, "JN18cx")
+        XCTAssertEqual(s.name, "Jean Pierre")
+    }
+
+    func testRejectsNonRosterLines() {
+        XCTAssertNil(RosterParser.parse("Inline commands available on this chat (by ON4KST):"))
+        XCTAssertNil(RosterParser.parse("/Quit              Exit from the chat."))
+        XCTAssertNil(RosterParser.parse("DX OFF, ANN OFF, WWC OFF"))
+        XCTAssertNil(RosterParser.parse(""))
+    }
+
+    /// `/SHow CONFig` prints the same three fields in a *different* order
+    /// (`CALL Name LOC`). Parsed blind it yields a wrong locator, which is
+    /// exactly why the connection only parses roster rows while a
+    /// `/SHow USer` is outstanding.
+    func testConfigLineIsWhyContextMatters() throws {
+        let s = try XCTUnwrap(RosterParser.parse("VU2CPL Manoj MK83TE"))
+        XCTAssertEqual(s.callsign, "VU2CPL")
+        XCTAssertNil(s.locator, "second field is the name here, not a locator")
+        XCTAssertEqual(s.name, "Manoj MK83TE")
+    }
+
+    func testLocatorTokenMustBeWholeToken() {
+        XCTAssertEqual(LineParser.normalisedLocator("MK83TE"), "MK83te")
+        XCTAssertEqual(LineParser.normalisedLocator("JO20"), "JO20")
+        XCTAssertNil(LineParser.normalisedLocator("MK83TExx"))
+        XCTAssertNil(LineParser.normalisedLocator("Manoj"))
+    }
+}

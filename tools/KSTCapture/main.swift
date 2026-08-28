@@ -125,6 +125,8 @@ Task {
                 }
             }
         case .disconnected(let r):  note("[disconnected: \(r ?? "clean")]")
+        case .rosterComplete(let stations):
+            note("[roster: \(stations.count) present — \(stations.map(\.callsign).joined(separator: ", "))]")
         case .line, .station:       break
         }
     }

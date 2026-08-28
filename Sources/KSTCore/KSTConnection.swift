@@ -52,6 +52,13 @@ public final class KSTConnection: @unchecked Sendable {
     /// end in a newline and so never surface as `KSTLine`s.
     public var rawMonitor: (@Sendable (String) -> Void)?
 
+    /// Which command's output we are currently reading. The server has no
+    /// markers around command replies, but it reprints its prompt when one
+    /// ends — so the prompt is the delimiter.
+    private enum Expecting { case nothing, roster }
+    private var expecting: Expecting = .nothing
+    private var rosterBuffer: [Station] = []
+
     private var continuation: AsyncStream<KSTEvent>.Continuation?
     public private(set) lazy var events: AsyncStream<KSTEvent> = {
         AsyncStream { self.continuation = $0 }
@@ -75,6 +82,8 @@ public final class KSTConnection: @unchecked Sendable {
             self.room = room
             self.codec = TelnetCodec()
             self.accumulator = LineAccumulator()
+            self.expecting = .nothing
+            self.rosterBuffer = []
             self.responding = false
             self.phase = .connecting
 
@@ -130,6 +139,26 @@ public final class KSTConnection: @unchecked Sendable {
                 return
             }
             self.write(trimmed)
+        }
+    }
+
+    /// Ask the server who is present. The reply arrives as `.line`s of
+    /// kind `.roster` and is closed by a `.rosterComplete` event.
+    public func requestRoster() {
+        queue.async {
+            guard self.phase == .inChat else { return }
+            self.expecting = .roster
+            self.rosterBuffer = []
+            self.write("/SHOW USER")
+        }
+    }
+
+    /// Ask for the last `count` chat messages, to backfill the log on join
+    /// rather than starting from an empty window.
+    public func requestBacklog(_ count: Int = 15) {
+        queue.async {
+            guard self.phase == .inChat else { return }
+            self.write("/SHOW MSG \(count)")
         }
     }
 
@@ -191,7 +220,29 @@ public final class KSTConnection: @unchecked Sendable {
     }
 
     private func handle(line raw: String) {
-        let parsed = parser.parse(raw)
+        var parsed = parser.parse(raw)
+
+        // The prompt closes whatever command reply was in flight.
+        if case .prompt = parsed.kind {
+            if expecting == .roster {
+                emit(.rosterComplete(rosterBuffer))
+                rosterBuffer = []
+            }
+            expecting = .nothing
+            emit(.line(parsed))
+            return
+        }
+
+        // Roster rows only count while a /SHow USer is outstanding: the
+        // same three fields appear in a different order in other replies.
+        if expecting == .roster, case .other = parsed.kind,
+           let station = RosterParser.parse(raw) {
+            rosterBuffer.append(station)
+            parsed = KSTLine(raw: raw, kind: .roster(station))
+            emit(.line(parsed))
+            return
+        }
+
         emit(.line(parsed))
 
         // Learn the roster from the traffic itself. Once the user-list

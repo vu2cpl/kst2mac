@@ -10,7 +10,7 @@ prior art).
 
 ## Status
 
-**v0.1 — working chat client.** Connects, logs in, joins a room, shows the
+**v0.2 — working chat client.** Connects, logs in, joins a room, shows the
 traffic, sends messages and `/CQ` directed messages, and builds a station
 table with distance and beam heading from your own square.
 
@@ -18,12 +18,13 @@ table with distance and beam heading from your own square.
 |---|---|
 | Telnet codec (IAC stripping, option refusal) | done, unit-tested |
 | Prompt-driven login state machine | done — CRLF-terminated prompts, 6 regression tests |
-| Chat message parser | done — accepts both `21:15` and `2115` stamps, neither yet seen live |
 | Chat room list | done — all 13 rooms, transcribed from a live menu |
 | Maidenhead distance / bearing | done, unit-tested |
 | Password in Keychain | done |
-| Station table | **partial** — learns callsigns from chat traffic, not from the server's roster |
-| User-list / roster parser | **not started** — command is `/SHow USer`, layout unknown |
+| Station table | done — populated from the server roster, refreshed every 60s |
+| User-list / roster parser | done — `/SHow USer`, prompt-delimited, unit-tested |
+| Scrollback backfill on join | done — `/SHOW MSG` |
+| Chat message parser | **unverified** — no real message line has been captured yet |
 | Map view | not planned for v0.1 |
 
 ## Build and run

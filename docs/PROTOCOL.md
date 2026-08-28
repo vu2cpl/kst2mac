@@ -165,6 +165,34 @@ The ones that matter for this client:
 | `/SET HERE`, `/UNSET HERE` | Presence, for an away toggle. |
 | `/DX qrg call` | Spot to the inline CLX cluster. |
 
+## `/SHow USer` — the roster, captured 2026-08-28
+
+```
+VU2CPL           MK83TE Manoj
+|<--- 17 cols --->|
+```
+
+Callsign left-justified in a 17-character field, then locator, then name.
+
+**Field order is command-specific.** `/SHow CONFig` prints the same three
+values in a different order:
+
+```
+VU2CPL Manoj MK83TE
+DX OFF, ANN OFF, WWC OFF
+```
+
+So a roster row cannot be recognised on its own — parsed blind, the config
+line yields `MK83TE` as part of the name and no locator at all. Command
+replies carry no start/end markers, but the server reprints its prompt when
+one finishes, so **the prompt is the delimiter**: `KSTConnection` marks a
+`/SHow USer` as outstanding and parses roster rows only until the next
+`.prompt` line, then emits `.rosterComplete`.
+
+Columns are parsed by splitting on whitespace and identifying the locator
+by shape, not by fixed offset — the single captured row has a short
+callsign in it, and `SV1DH/P` would overrun the field.
+
 ## Message format
 
 ```
@@ -204,17 +232,20 @@ publish it.
 
 Open questions the transcript answers:
 
-1. **`/SHow USer` output format.** The command is confirmed; its column
-   layout is not. This is the last thing standing between the station
-   table and showing who is actually present.
-2. **Message-line format.** No chat message has been captured yet. The
-   command prompt uses `HHMMZ`, so `HHMM` is the better guess of the two
-   the parser accepts, but that is inference, not evidence. `/SHOW MSG 15`
-   settles it.
-3. **Locator source.** Whether `/SHow USer` carries locators directly, or
-   whether we keep scraping them out of message text.
+1. **Message-line format — the last unknown.** Still no chat message has
+   ever been captured. `/SHOW MSG 15` in the R3 chat returned nothing at
+   all, because that room has no history and, at the time of capture,
+   exactly one station in it. The command prompt uses `HHMMZ`, so `HHMM`
+   is the better guess of the two forms `LineParser` accepts — inference,
+   not evidence.
+
+   To settle it, probe a room that has traffic: `--room 2` (144/432 EU)
+   during the European evening, or `--room 4` (EME). `/SHOW MSG 15` there
+   will return real message lines even if nobody is speaking at that
+   moment.
+2. ~~Locator source~~ — `/SHow USer` carries the locator directly.
 4. **Join/leave notices** — their shape, so the roster can age out.
-5. ~~The full `/HELP` command set~~ — captured, see above.
+4. ~~The full `/HELP` command set~~ — captured, see above.
 
 ## Prior art
 

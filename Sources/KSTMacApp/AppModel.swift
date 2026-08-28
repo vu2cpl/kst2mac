@@ -39,6 +39,7 @@ final class AppModel: ObservableObject {
 
     private var connection: KSTConnection?
     private var pump: Task<Void, Never>?
+    private var rosterTimer: Task<Void, Never>?
 
     // MARK: - Connect / disconnect
 
@@ -67,7 +68,28 @@ final class AppModel: ObservableObject {
         conn.connect(username: callsign, password: password, room: room)
     }
 
+    /// Ask the server who is present. Safe to call at any time; ignored
+    /// unless we are in the chat.
+    func refreshRoster() {
+        connection?.requestRoster()
+    }
+
+    /// The roster is a snapshot, so it needs re-asking. A minute is well
+    /// under the rate at which a VHF chat's population changes.
+    private func startRosterRefresh() {
+        rosterTimer?.cancel()
+        rosterTimer = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000_000)
+                guard let self, self.isInChat else { return }
+                self.refreshRoster()
+            }
+        }
+    }
+
     func disconnect() {
+        rosterTimer?.cancel()
+        rosterTimer = nil
         connection?.disconnect()
         connection = nil
         pump?.cancel()
@@ -101,6 +123,7 @@ final class AppModel: ObservableObject {
         case .status(let text):
             status = text
         case .line(let line):
+            if case .roster = line.kind { return }   // the table shows these
             if case .prompt(_, let chat) = line.kind {
                 // Not traffic: it is the server telling us where we are
                 // and what time it thinks it is.
@@ -114,6 +137,27 @@ final class AppModel: ObservableObject {
         case .loggedIn(let room):
             isInChat = true
             status = "In \(room.title) as \(callsign)"
+            // Backfill the window and find out who is actually here,
+            // rather than waiting for someone to speak.
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                self?.connection?.requestBacklog()
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                self?.refreshRoster()
+            }
+            startRosterRefresh()
+        case .rosterComplete(let present):
+            // Authoritative presence. Keep anything we already learned
+            // from traffic (a name, a locator) for stations still here.
+            stations = present.map { fresh in
+                guard let known = stations.first(where: { $0.callsign == fresh.callsign }) else { return fresh }
+                var merged = fresh
+                merged.name = fresh.name ?? known.name
+                merged.locator = fresh.locator ?? known.locator
+                return merged
+            }
+            .sorted { $0.callsign < $1.callsign }
+
         case .disconnected(let reason):
             isConnected = false
             isInChat = false

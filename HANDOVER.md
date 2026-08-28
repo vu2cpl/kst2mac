@@ -1,7 +1,7 @@
 # KST Mac — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.1 — login works end to end; roster still to do
+**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.2 — login and roster working; message format still unseen
 
 ---
 
@@ -118,27 +118,53 @@ is furniture; `LineParser` gives it its own `.prompt` kind and the UI keeps
 it out of the chat log, using it for the status line and the server clock.
 It also shows the server thinks in `HHMM` + `Z`, UTC.
 
-Still open: no actual chat *message* has been seen, so the message-line
-format remains inference, and `/SHow USer`'s column layout is unknown.
-`--probe` now runs `/SHOW USER`, `/SHOW MSG 15`, `/SHOW CONFIG` and
-`/HELP` — all reply privately, none post to the room — so one more capture
-settles both.
+**2026-08-28, fifth pass — the roster works.** `/SHow USer` captured:
+
+```
+VU2CPL           MK83TE Manoj
+```
+
+Callsign in a 17-column field, then locator, then name — parsed by
+whitespace split and locator *shape*, not by offset, since the one captured
+row has a short callsign and `SV1DH/P` would overrun it.
+
+The catch worth remembering: **field order is command-specific.**
+`/SHow CONFig` prints `CALL Name LOC` where the roster prints
+`CALL LOC Name`, so a roster row cannot be recognised in isolation. Command
+replies have no delimiters — but the server reprints its prompt when one
+ends, so the prompt *is* the delimiter. `KSTConnection` marks a
+`/SHow USer` outstanding and parses roster rows only until the next
+`.prompt`, then emits `.rosterComplete`. There is a test asserting the
+config line parses wrongly in isolation, to keep that reasoning attached to
+the code.
+
+The app now asks for the roster 3s after joining and every 60s after, plus
+a manual refresh button, and backfills the window with `/SHOW MSG` on join.
+The station table finally shows who is *present* rather than who has
+spoken.
+
+**Why every capture has looked dead:** the 144/432 IARU R3 chat had exactly
+one station in it — VU2CPL. `/SHOW MSG 15` returned nothing because that
+room has no history. Nothing was ever wrong with the room choice; R3 is
+just empty.
+
+Still open, and now the only protocol unknown: **no chat message line has
+ever been captured.** Probe room 2 (144/432 EU) during the EU evening or
+room 4 (EME); `/SHOW MSG 15` there returns real messages even in silence.
 
 ## Open items
 
-1. **One more `--probe` capture** — `swift run KSTCapture --call VU2CPL
-   --room 9 --seconds 120 --probe`. Items 2 and 3 are blocked on it.
-2. **Roster parser** — `/SHow USer`, column layout unknown. Populate the
-   station table from it instead of from chat traffic. Biggest single
-   improvement available.
-3. **Confirm the message-line format** — `21:15` or `2115`. The parser
+1. **Capture a real message line** — `swift run KSTCapture --call VU2CPL
+   --room 2 --seconds 120 --probe` during the EU evening. The R3 chat is
+   empty, so it can never supply one. This is the last protocol unknown.
+2. **Confirm the message-line format** — `21:15` or `2115`. The parser
    accepts both; narrow it once known.
-4. **Join/leave notices** so the roster can age stations out.
-5. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs
+3. **Join/leave notices** so the table updates between roster polls.
+4. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs
    it automatically if present.
-6. Not yet decided: notarisation (`notarize.sh`, as in the sibling Mac
+5. Not yet decided: notarisation (`notarize.sh`, as in the sibling Mac
    apps) if this is ever distributed beyond the shack.
-7. Not planned for v0.1: map view, DXClusterAggregator spot integration.
+6. Not planned for v0.1: map view, DXClusterAggregator spot integration.
    Both were explicitly deferred when the scope was set.
 
 ## Gotchas

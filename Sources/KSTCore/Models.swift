@@ -56,6 +56,9 @@ public struct KSTLine: Identifiable, Sendable {
         /// `0829Z VU2CPL 144/432 MHz IARU R 3 chat>`. Furniture, not
         /// traffic — kept out of the chat log.
         case prompt(callsign: String, chat: String)
+        /// A row of `/SHow USer` output. Feeds the station table, not the
+        /// chat log.
+        case roster(Station)
         /// Anything the server said that we didn't classify.
         case other
         /// Locally generated notice (connect/disconnect/errors) — never
@@ -108,5 +111,8 @@ public enum KSTEvent: Sendable {
     case line(KSTLine)
     case station(Station)        // a station was seen or updated
     case loggedIn(ChatRoom)
+    /// A complete `/SHow USer` reply — the authoritative list of who is
+    /// present, replacing whatever the table held before.
+    case rosterComplete([Station])
     case disconnected(String?)   // nil = clean, otherwise the reason
 }

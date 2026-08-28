@@ -60,6 +60,10 @@ private struct LineRow: View {
             .background(highlighted ? Color.yellow.opacity(0.18) : .clear)
             .cornerRadius(4)
 
+        case .roster:
+            // Belongs in the station table, not the chat log.
+            EmptyView()
+
         case .prompt:
             // Server furniture — the chat log stays traffic only.
             EmptyView()

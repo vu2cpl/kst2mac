@@ -77,6 +77,18 @@ public struct LineParser {
         )
     }
 
+    /// Whether a bare token is a Maidenhead locator, normalised to the
+    /// conventional `AB12cd` casing if so. Shared with `RosterParser`.
+    public static func normalisedLocator(_ token: String) -> String? {
+        let t = token.trimmingCharacters(in: .whitespaces)
+        let r = NSRange(t.startIndex..<t.endIndex, in: t)
+        guard let m = locator.firstMatch(in: t, range: r),
+              m.range == r,      // the whole token, not a substring of it
+              let g = Range(m.range(at: 1), in: t) else { return nil }
+        let value = String(t[g])
+        return value.prefix(4).uppercased() + value.dropFirst(4).lowercased()
+    }
+
     /// First Maidenhead locator in a line, if any. Used both to enrich the
     /// station table from chat traffic and — once the user-list format is
     /// confirmed — to pull locators out of the roster.
