@@ -740,13 +740,36 @@ to anyone), and sending one **opens the server log**, because that is
 where the reply lands and typing a command into a pane you cannot see is
 no use.
 
-Worth recording: `/SHow CONFig` reports `DXCLX ON, ANN ON`, so the DX flag
-**is** stored per account and survives reconnects — the automatic
-`/SET DXCLX` on join is belt-and-braces rather than required. The same
-output shows `Accepted QRG for DX spots: 137 KHz 1.8 MHz 3.5 MHz` in the
-Low Band room: **each chat only carries spots for its own bands**. Feeding
-dxca broadly therefore means panes in several rooms, which the shared
-relay already handles and dedupes.
+Worth recording: `/SHow CONFig` in the Low Band room reports `DXCLX ON,
+ANN ON` and `Accepted QRG for DX spots: 137 KHz 1.8 MHz 3.5 MHz`.
+**Corrected below** — settings turned out to be per chat, not per account.
+
+**2026-08-28, thirtieth pass — three bugs, reported together.**
+
+**`/CHAT` does not always move the session.** The server can answer by
+re-presenting the chat-selection menu and waiting for a digit, exactly as
+at login. We treated `/CHAT` as fire-and-forget and emitted `.loggedIn`
+immediately, so the session sat at that menu: the room never changed, and
+everything issued afterwards — the roster poll, `/SET DXCLX` — went into a
+prompt. `pendingRoomChoice` now holds the digit until either the menu
+appears and is answered, or a `Welcome … on this <room>` line confirms the
+move. The welcome line is the only trustworthy end to a switch; `.loggedIn`
+is emitted then, not on sending the command.
+
+**Settings are per chat, not per account.** Earlier I read `DXCLX ON` from
+`/SHow CONFig` and concluded the DX flag was account-wide. It was the Low
+Band room's config. Each chat is configured separately, which makes the
+automatic `/SET DXCLX` on room entry *required*, not belt-and-braces — and
+it now fires on every confirmed room change, because `.loggedIn` follows
+the welcome line.
+
+**The doubled app name, third time.** Re-applying `titleVisibility` later
+in the run loop was still not enough: SwiftUI re-applies its title
+handling whenever the toolbar rebuilds, and a toolbar containing live
+state rebuilds constantly. `WindowAccessor` now observes
+`NSWindow.didUpdateNotification` for its own window and re-applies on
+every update. It cannot loop because `configure` no-ops when the window is
+already correct, and setting nothing posts nothing.
 
 ## Open items
 

@@ -73,6 +73,17 @@ public final class KSTConnection: @unchecked Sendable {
     private var expecting: Expecting = .nothing
     private var rosterBuffer: [Station] = []
 
+    /// Set while a `/CHAT` switch is in flight.
+    ///
+    /// `/CHAT` does not always move the session silently — the server can
+    /// answer by re-presenting the chat-selection menu and waiting for a
+    /// digit, exactly as it does at login. Left unanswered the session
+    /// sits at that menu: the room never changes, and everything after it
+    /// (the roster, `/SET DXCLX`) is issued into a prompt. So the digit is
+    /// kept until either the menu appears and is answered, or a welcome
+    /// line confirms the move.
+    private var pendingRoomChoice: ChatRoom?
+
     private var continuation: AsyncStream<KSTEvent>.Continuation?
     /// Access this **before** calling `connect(_:)`. The continuation is
     /// created on first access, so events emitted earlier have nowhere to
@@ -104,6 +115,7 @@ public final class KSTConnection: @unchecked Sendable {
             self.queuedCommands = []
             self.drainScheduled = false
             self.nextCommandAllowed = .distantPast
+            self.pendingRoomChoice = nil
             self.responding = false
             self.phase = .connecting
 
@@ -172,8 +184,9 @@ public final class KSTConnection: @unchecked Sendable {
             self.rosterBuffer = []
             self.emit(.status("Switching to \(newRoom.title)…"))
             self.queuedCommands = []          // stale: they were for the old room
+            self.pendingRoomChoice = newRoom
+            self.accumulator.clear()
             self.write("/CHAT \(newRoom.chatToken)")
-            self.emit(.loggedIn(newRoom))
         }
     }
 
@@ -339,11 +352,22 @@ public final class KSTConnection: @unchecked Sendable {
             handle(line: line)
         }
 
-        if phase != .inChat { checkForPrompt() }
+        // Prompts also matter mid-session while a room switch is pending.
+        if phase != .inChat || pendingRoomChoice != nil { checkForPrompt() }
     }
 
     private func handle(line raw: String) {
         var parsed = parser.parse(raw)
+
+        // `Welcome … on this <room> amateur chat` is the server confirming
+        // where we actually are — the only trustworthy end to a switch.
+        if case .joined = parsed.kind, let choice = pendingRoomChoice {
+            pendingRoomChoice = nil
+            room = choice
+            expecting = .nothing
+            rosterBuffer = []
+            emit(.loggedIn(choice))
+        }
 
         // The server telling us to slow down is the authority on when the
         // next command may go out — believe it over our own estimate.
@@ -397,6 +421,14 @@ public final class KSTConnection: @unchecked Sendable {
         guard !responding else { return }
         let candidate = accumulator.promptCandidate
         guard !candidate.isEmpty else { return }
+
+        // A `/CHAT` that came back with the selection menu instead of
+        // moving us. Answer it with the digit and carry on.
+        if let choice = pendingRoomChoice, LoginPrompt.room.matches(candidate) {
+            emit(.status("Answering chat menu with \(choice.rawValue) — \(choice.title)"))
+            respond(String(choice.rawValue), then: .inChat)
+            return
+        }
 
         switch phase {
         case .awaitingLogin:

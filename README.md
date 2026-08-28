@@ -98,7 +98,11 @@ The message box does both. Plain text goes to the room; text beginning
 `/UNSET DX`. Command replies are private and appear in **Server output**,
 which opens itself when you send one.
 
-Each chat carries only its own bands' DX spots, so a Low Band pane will
+Settings are **per chat**, not per account — `/SET` in one room does not
+carry to another. The app handles the one that matters: while the relay is
+on, every room you enter gets `/SET DXCLX` automatically.
+
+Each chat also carries only its own bands' spots, so a Low Band pane will
 never show a 144 MHz spot. Open a pane per room to feed the relay widely;
 spots are deduplicated across panes.
 
@@ -149,7 +153,11 @@ The message box does both. Plain text goes to the room; text beginning
 `/UNSET DX`. Command replies are private and appear in **Server output**,
 which opens itself when you send one.
 
-Each chat carries only its own bands' DX spots, so a Low Band pane will
+Settings are **per chat**, not per account — `/SET` in one room does not
+carry to another. The app handles the one that matters: while the relay is
+on, every room you enter gets `/SET DXCLX` automatically.
+
+Each chat also carries only its own bands' spots, so a Low Band pane will
 never show a 144 MHz spot. Open a pane per room to feed the relay widely;
 spots are deduplicated across panes.
 
