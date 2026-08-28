@@ -10,27 +10,39 @@ final class AppModel: ObservableObject {
     @AppStorage("homeGrid")  var homeGrid: String = ""
     @AppStorage("host")      var host: String = KSTConnection.defaultHost
     @AppStorage("port")      var port: Int = Int(KSTConnection.defaultPort)
-    // Defaults to 144/432 MHz rather than the region-3 room: R3 is
-    // usually empty, and a first run that shows an empty window looks
-    // like a broken client rather than a quiet band.
-    @AppStorage("roomRaw")   var roomRaw: Int = ChatRoom.vhfUhf.rawValue
+
     @AppStorage("savePassword") var savePassword: Bool = true
 
-    var room: ChatRoom {
-        get { ChatRoom(rawValue: roomRaw) ?? .vhfUhf }
-        set {
-            guard newValue != room else { return }
-            roomRaw = newValue.rawValue
-            // While connected the server can move us with /CHAT, so the
-            // picker stays live rather than being locked until reconnect.
+    /// **Per window.** Each window owns its own connection, so two
+    /// windows are two sessions in two different rooms — this cannot live
+    /// in shared storage or the windows would fight over it. The last
+    /// choice made is remembered only as the *default* for the next new
+    /// window.
+    ///
+    /// Defaults to 144/432 MHz rather than the region-3 room: R3 is
+    /// usually empty, and a first run showing an empty window reads as a
+    /// broken client rather than a quiet band.
+    @Published var room: ChatRoom {
+        didSet {
+            guard room != oldValue else { return }
+            UserDefaults.standard.set(room.rawValue, forKey: Self.defaultRoomKey)
+            // While connected the server moves us with /CHAT, so the
+            // picker stays live rather than locked until reconnect.
             if isInChat {
                 // Keep the old list visible and marked stale: the
                 // replacement roster may be a minute away, and an empty
                 // table reads as "nobody here" rather than "asking".
                 stationsAreStale = true
-                connection?.switchChat(to: newValue)
+                connection?.switchChat(to: room)
             }
         }
+    }
+
+    static let defaultRoomKey = "roomRaw"
+
+    init() {
+        let stored = UserDefaults.standard.integer(forKey: Self.defaultRoomKey)
+        room = ChatRoom(rawValue: stored) ?? .vhfUhf
     }
 
     // MARK: Live state
@@ -62,6 +74,10 @@ final class AppModel: ObservableObject {
     // MARK: - Connect / disconnect
 
     func connect(password: String) {
+        // Ask on first connect rather than at launch: the permission
+        // prompt makes sense once there is something to be notified about.
+        Notifier.shared.requestAuthorization()
+
         guard !callsign.isEmpty else {
             append(.local("Set your callsign in Settings first."))
             return
@@ -212,6 +228,10 @@ final class AppModel: ObservableObject {
     }
 
     private func append(_ line: KSTLine) {
+        if mentionsMe(line), case .message(let from, let name, let to, let text) = line.kind {
+            Notifier.shared.mention(from: from, name: name, text: text,
+                                    room: room.title, directed: to == callsign.uppercased())
+        }
         lines.append(line)
         if lines.count > maxLines {
             lines.removeFirst(lines.count - maxLines)

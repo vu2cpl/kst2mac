@@ -1,8 +1,15 @@
 import SwiftUI
 import KSTCore
 
+/// Settings are global — callsign, locator, server — so this view reads
+/// UserDefaults directly rather than a window's model. There is no single
+/// model to reach for once there can be several windows.
 struct SettingsView: View {
-    @EnvironmentObject private var model: AppModel
+    @AppStorage("callsign") private var callsign: String = ""
+    @AppStorage("homeGrid") private var homeGrid: String = ""
+    @AppStorage("host") private var host: String = KSTConnection.defaultHost
+    @AppStorage("port") private var port: Int = Int(KSTConnection.defaultPort)
+
     @State private var newPassword = ""
     @State private var note: String?
 
@@ -10,13 +17,14 @@ struct SettingsView: View {
         Form {
             Section("Station") {
                 TextField("Callsign", text: Binding(
-                    get: { model.callsign },
-                    set: { model.callsign = $0.uppercased() }))
+                    get: { callsign },
+                    set: { callsign = $0.uppercased() }))
+                    .textFieldStyle(.roundedBorder)
                 TextField("Locator", text: Binding(
-                    get: { model.homeGrid },
-                    set: { model.homeGrid = $0.trimmingCharacters(in: .whitespaces) }),
+                    get: { homeGrid },
+                    set: { homeGrid = $0.trimmingCharacters(in: .whitespaces) }),
                     prompt: Text("e.g. JO20dh"))
-                if !model.homeGrid.isEmpty && Maidenhead.coordinates(model.homeGrid) == nil {
+                if !homeGrid.isEmpty && Maidenhead.coordinates(homeGrid) == nil {
                     Text("Not a valid Maidenhead locator")
                         .font(.caption).foregroundStyle(.red)
                 }
@@ -27,20 +35,20 @@ struct SettingsView: View {
                 HStack {
                     Button("Save to Keychain") {
                         do {
-                            try Keychain.setPassword(newPassword, account: model.callsign)
+                            try Keychain.setPassword(newPassword, account: callsign)
                             newPassword = ""
                             note = "Saved."
                         } catch {
                             note = error.localizedDescription
                         }
                     }
-                    .disabled(model.callsign.isEmpty || newPassword.isEmpty)
+                    .disabled(callsign.isEmpty || newPassword.isEmpty)
 
                     Button("Forget") {
-                        Keychain.removePassword(account: model.callsign)
+                        Keychain.removePassword(account: callsign)
                         note = "Removed from Keychain."
                     }
-                    .disabled(model.callsign.isEmpty)
+                    .disabled(callsign.isEmpty)
                 }
                 if let note {
                     Text(note).font(.caption).foregroundStyle(.secondary)
@@ -52,9 +60,9 @@ struct SettingsView: View {
 
             Section("Server") {
                 TextField("Host", text: Binding(
-                    get: { model.host }, set: { model.host = $0 }))
+                    get: { host }, set: { host = $0 }))
                 TextField("Port", value: Binding(
-                    get: { model.port }, set: { model.port = $0 }),
+                    get: { port }, set: { port = $0 }),
                     format: .number.grouping(.never))
             }
         }

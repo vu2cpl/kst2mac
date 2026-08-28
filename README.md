@@ -25,6 +25,8 @@ table with distance and beam heading from your own square.
 | User-list / roster parser | done — `/SHow USer`, prompt-delimited, unit-tested |
 | Scrollback backfill on join | done — `/SHOW MSG` |
 | Live room switching | done — `/CHAT`, no reconnect |
+| Mention notifications | done — banner when not frontmost, plus Dock badge |
+| Multiple windows | done — one connection and room per window (see caveat below) |
 | Callsign colour identity | done — stable per-callsign colour in log and table |
 | Banner collapsing | done — repeated join banners become one room divider |
 | Command rate limiting | done — server allows ~1/min; app never spends your budget unasked |
@@ -118,6 +120,19 @@ See [docs/PROTOCOL.md](docs/PROTOCOL.md) for the full captured command set.
 It prompts for the password with echo off and never writes it to the file.
 Transcripts are git-ignored — they contain whatever the room said while you
 were recording, and the login banner echoes your public IP.
+
+## Multiple windows
+
+**File ▸ New chat window** opens another window with its own connection,
+so you can watch two rooms at once. Each window has its own room picker
+and its own station table; settings (callsign, locator, server) stay
+global.
+
+Caveat: this means two simultaneous logins on the same callsign, and it is
+not yet known whether the server permits that — it may drop the first
+session. The roster contains callsigns like `DN9APW-2`, which suggests
+additional sessions use an SSID suffix; if the server objects, a
+per-window login of `VU2CPL-2` is the likely fix.
 
 ## Conventions
 

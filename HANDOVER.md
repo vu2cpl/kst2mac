@@ -275,11 +275,45 @@ Palette entries are picked to stay legible on both the light and dark
 system backgrounds — the app follows the system appearance and has no
 theme of its own.
 
+**2026-08-28, twelfth pass — notifications and multiple windows.**
+
+Mention notifications: a Notification Center banner when a line names you,
+**only while the app is not frontmost** — a banner for a line you are
+looking at is noise, and this app stays open for hours. Authorisation is
+requested on first connect rather than at launch, so the prompt arrives
+when there is something to be notified about. `Notifier` no-ops entirely
+when `Bundle.main.bundleIdentifier` is nil, because
+`UNUserNotificationCenter.current()` **traps** in a process without one —
+which is exactly what `swift run KSTMac` is. Do not remove that guard or
+command-line runs start crashing.
+
+Multiple windows required a restructure. `AppModel.room` was
+`@AppStorage`-backed, which is wrong the moment two windows exist — they
+would fight over one stored value. It is now per-instance `@Published`
+state, seeded from the stored value and writing back only as the *default
+for the next new window*. `SettingsView` likewise no longer takes an
+`AppModel` from the environment: settings are global, and with several
+windows there is no single model to reach for, so it reads `@AppStorage`
+directly.
+
+Each window owns an `AppModel` and therefore its own `KSTConnection` —
+one window per room, which is the point.
+
+**Unverified and important:** two windows means two simultaneous logins
+with the same callsign, and whether the server permits that is unknown. It
+may kick the first session. There is a clue in the roster capture —
+`DN9APW-2` — suggesting extra sessions take an SSID suffix, so if the
+server objects, the fix is probably a per-window login of `VU2CPL-2`. Not
+implemented on a guess; test first.
+
 ## Open items
 
-1. **Join/leave notices** — shape unknown, so the table only updates on
+1. **Does the server allow two logins on one callsign?** Blocks the
+   two-window feature being genuinely useful. If not, add a per-window
+   login suffix (`VU2CPL-2`) — see the `DN9APW-2` clue above.
+2. **Join/leave notices** — shape unknown, so the table only updates on
    the 60s roster poll. Needs a longer capture.
-2. **`/SHow DX` spot format**, if spots are ever surfaced. They arrive
+3. **`/SHow DX` spot format**, if spots are ever surfaced. They arrive
    disabled (`DX OFF, ANN OFF, WWC OFF` from `/SHow CONFig`), which is
    why no capture has contained one.
 4. App icon (`Resources/AppIcon.png`, 1024×1024) — `build_app.sh` packs
