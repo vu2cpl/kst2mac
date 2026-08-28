@@ -46,6 +46,15 @@ public final class SpotRelay: @unchecked Sendable {
 
     public init() {}
 
+    /// `28-Aug-2026 1300Z`, the shape cluster nodes use in their prompt.
+    static func nodeTimestamp(_ now: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "dd-MMM-yyyy HHmm'Z'"
+        return formatter.string(from: now)
+    }
+
     // MARK: - Lifecycle
 
     /// - Parameter loopbackOnly: bind `127.0.0.1` rather than every
@@ -157,6 +166,14 @@ public final class SpotRelay: @unchecked Sendable {
 
         send(to: client, "Hello \(client.call), you are connected to KST2Mac")
         send(to: client, "Spots follow as they arrive from the ON4KST chat.")
+        // A real node ends its login with a prompt, and a cluster client
+        // treats one as proof the session works rather than merely being
+        // open — dxca classifies any line ending in ">" that contains
+        // " de " as a node prompt, and stays amber until it sees a prompt,
+        // a spot, a WWV report or an announcement. Without this the link
+        // reads as unhealthy until the first spot happens along, which on
+        // a quiet band can be a long wait.
+        send(to: client, "\(client.call) de KST2Mac \(Self.nodeTimestamp()) >")
         onStatus?("\(client.call) connected")
         onClientCount?(clients.values.filter(\.loggedIn).count)
     }

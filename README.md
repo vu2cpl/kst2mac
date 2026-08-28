@@ -29,7 +29,7 @@ table with distance and beam heading from your own square.
 | User-list / roster parser | done — `/SHow USer`, prompt-delimited, unit-tested |
 | Scrollback backfill on join | done — `/SHOW MSG` |
 | Live room switching | done — `/CHAT`, no reconnect |
-| DX-cluster relay | done — serves spots on 127.0.0.1:7373 for dxca or any cluster client |
+| DX-cluster relay | done — serves spots on port 7373; verified feeding dxca |
 | Alert sounds | done — per event, plays even when frontmost, burst-suppressed |
 | Mention notifications | done — banner when not frontmost, plus Dock badge |
 | Multiple windows | done — concurrent logins verified |

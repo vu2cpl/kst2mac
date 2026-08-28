@@ -656,3 +656,36 @@ final class SpotLineTests: XCTestCase {
         }
     }
 }
+
+/// The relay's login prompt must satisfy a cluster client's idea of a
+/// node prompt, or the link sits amber until a spot happens along.
+final class RelayPromptTests: XCTestCase {
+
+    /// dxca classifies a prompt as: trimmed line ends with ">" and
+    /// contains " DE " case-insensitively.
+    private func isNodePrompt(_ line: String) -> Bool {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        return trimmed.hasSuffix(">") && trimmed.uppercased().contains(" DE ")
+    }
+
+    func testOurPromptIsRecognisable() {
+        let line = "VU2CPL de KST2Mac \(SpotRelay.nodeTimestamp()) >"
+        XCTAssertTrue(isNodePrompt(line), "got \(line)")
+    }
+
+    /// Cross-check the rule against a real DXSpider prompt.
+    func testRuleMatchesARealNodePrompt() {
+        XCTAssertTrue(isNodePrompt("W6BT de GB7DJK 11-Jul-2026 0923Z dxspider >"))
+    }
+
+    func testWelcomeLinesAreNotPrompts() {
+        XCTAssertFalse(isNodePrompt("Hello VU2CPL, you are connected to KST2Mac"))
+        XCTAssertFalse(isNodePrompt("Spots follow as they arrive from the ON4KST chat."))
+    }
+
+    func testTimestampShape() {
+        let stamp = SpotRelay.nodeTimestamp(Date(timeIntervalSince1970: 1_787_000_000))
+        XCTAssertTrue(stamp.hasSuffix("Z"), "got \(stamp)")
+        XCTAssertEqual(stamp.count, 17, "expected dd-MMM-yyyy HHmmZ, got \(stamp)")
+    }
+}

@@ -669,39 +669,55 @@ No password on the relay, by explicit instruction: cluster telnet is
 plaintext anyway and this is a shack-internal link. The LAN is the trust
 boundary. Do not add auth here unasked.
 
+**2026-08-28, twenty-sixth pass — the amber link.** dxca connected to the
+relay but showed amber, not green. Its client distinguishes *open* from
+*proven*: a session is only proven once it sees a spot, a WWV report, an
+announcement, or a **node prompt** — any line that ends in `>` and
+contains ` de `. Our welcome lines classified as `Other`, so the link read
+as unhealthy until a spot happened along, which on a quiet band could be a
+long wait.
+
+The relay now closes its login with `VU2CPL de KST2Mac 28-Aug-2026 1401Z >`,
+which is what a real node sends anyway. Green immediately. There is a test
+checking our prompt against the same rule dxca applies, plus a real
+DXSpider prompt as a cross-check.
+
+The lesson is the same as the ON4KST protocol work: read the other end's
+parser rather than guessing what it wants. Three separate details —
+`login:` as a prompt substring, `strip_prefix("DX de ")`, and this — all
+came from `crates/dxca-connect/src/dxcluster/`.
+
 ## Open items
 
 **Ready to build**
 
-1. **Wire dxca to the relay** — the node is verified from the Mac's LAN
-   address. Remaining: the `[[cluster_nodes]]` entry on the Pi, and
-   `/SET DXCLX` once in a connected pane so ON4KST actually sends spots.
-   Note the Mac's address is DHCP; a reservation or a `.local` name would
-   keep the Pi's config from going stale.
+1. ~~Wire dxca to the relay~~ — done and green on 2026-08-28. The Mac's
+   address is DHCP, so a reservation or a `.local` name would keep the
+   Pi's `cluster_nodes` entry from going stale.
 
-2. **Away toggle** — `/SET HERE` / `/UNSET HERE` (§5.3.4). One command,
+1. **Away toggle** — `/SET HERE` / `/UNSET HERE` (§5.3.4). One command,
    and it is what puts the brackets round a callsign in everyone else's
    roster.
-3. **Watch scopes** (§3.4) — watches currently match message text and
+2. **Watch scopes** (§3.4) — watches currently match message text and
    callsigns; KST2Me also scopes them to the user list, spot calls,
    frequency, and locator.
-4. **QRB highlight thresholds** (§3.10.3) — highlight stations beyond a
+3. **QRB highlight thresholds** (§3.10.3) — highlight stations beyond a
    set distance, rather than only shading by distance.
 
 **Needs observation**
 
-5. **Join/leave notices** — shape unknown, so the table only updates on
+4. **Join/leave notices** — shape unknown, so the table only updates on
    the five-minute roster poll.
-6. **Is the command rate limit per connection or per callsign?** Symptom
+5. **Is the command rate limit per connection or per callsign?** Symptom
    if shared: wait notices appearing far more often with three panes than
    with one. Each pane polls the roster independently.
 
 **Deferred**
 
-7. **Notarisation** (`notarize.sh`, as in the sibling Mac apps) — only
+6. **Notarisation** (`notarize.sh`, as in the sibling Mac apps) — only
    needed if this is ever distributed beyond the shack. Ad-hoc signing is
    fine locally.
-8. **Map view** — explicitly out of scope at v0.1 and still is.
+7. **Map view** — explicitly out of scope at v0.1 and still is.
 
 ## Gotchas
 
