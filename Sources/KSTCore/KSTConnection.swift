@@ -38,9 +38,9 @@ public final class KSTConnection: @unchecked Sendable {
     private var connection: NWConnection?
     private var codec = TelnetCodec()
     private var phase: Phase = .idle
-    /// Text received but not yet terminated by a newline. Prompts arrive
-    /// without one, so this is also where we look for them.
-    private var pending = ""
+    /// Line splitting plus prompt tracking. See LineAccumulator for why
+    /// the prompt candidate is not simply the un-terminated tail.
+    private var accumulator = LineAccumulator()
     /// Set while a prompt answer is in flight, so we answer each prompt once.
     private var responding = false
     private var username = ""
@@ -74,7 +74,7 @@ public final class KSTConnection: @unchecked Sendable {
             self.password = password
             self.room = room
             self.codec = TelnetCodec()
-            self.pending = ""
+            self.accumulator = LineAccumulator()
             self.responding = false
             self.phase = .connecting
 
@@ -183,16 +183,8 @@ public final class KSTConnection: @unchecked Sendable {
             ?? String(decoding: payload, as: UTF8.self)
 
         rawMonitor?(text)
-        pending += text
-
-        // Emit every complete line; whatever is left is a partial line or,
-        // during the handshake, a prompt.
-        while let nl = pending.firstIndex(of: "\n") {
-            let raw = String(pending[pending.startIndex..<nl])
-                .replacingOccurrences(of: "\r", with: "")
-            pending = String(pending[pending.index(after: nl)...])
-            guard !raw.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
-            handle(line: raw)
+        for line in accumulator.feed(text) {
+            handle(line: line)
         }
 
         if phase != .inChat { checkForPrompt() }
@@ -214,37 +206,25 @@ public final class KSTConnection: @unchecked Sendable {
 
     // MARK: - Login state machine
 
-    /// Look at the un-terminated tail for a prompt and answer it once.
-    ///
-    /// The prompts are matched loosely — the exact wording is not
-    /// guaranteed stable and has only been confirmed second-hand. A
-    /// mis-fire here is harmless: nothing we send during the handshake can
-    /// reach the room, because we are not in the room yet.
+    /// Answer whichever prompt we are waiting on, once.
     private func checkForPrompt() {
         guard !responding else { return }
-        let tail = pending.lowercased()
-        guard !tail.isEmpty else { return }
+        let candidate = accumulator.promptCandidate
+        guard !candidate.isEmpty else { return }
 
         switch phase {
         case .awaitingLogin:
-            guard tail.contains("login") || tail.contains("callsign") || tail.contains("user") else { return }
+            guard LoginPrompt.login.matches(candidate) else { return }
             emit(.status("Sending callsign…"))
             respond(username, then: .awaitingPassword)
 
         case .awaitingPassword:
-            guard tail.contains("password") else { return }
+            guard LoginPrompt.password.matches(candidate) else { return }
             emit(.status("Sending password…"))
             respond(password, then: .awaitingRoom)
 
         case .awaitingRoom:
-            // The chat menu ends in a prompt with no newline. Require both
-            // some evidence of the menu and a prompt-shaped tail so we
-            // don't answer mid-banner.
-            let looksLikeMenu = tail.contains("144/432") || tail.contains("chat")
-                || tail.contains("choice") || tail.contains("number")
-            let promptShaped = tail.hasSuffix(":") || tail.hasSuffix("> ")
-                || tail.hasSuffix(">") || tail.hasSuffix("? ")
-            guard looksLikeMenu, promptShaped else { return }
+            guard LoginPrompt.room.matches(candidate) else { return }
             emit(.status("Entering \(room.title)…"))
             respond(String(room.rawValue), then: .inChat)
 
@@ -258,7 +238,7 @@ public final class KSTConnection: @unchecked Sendable {
     /// back-to-back, so each one waits for its own prompt *and* pauses
     /// before replying. `responding` blocks re-entry in the meantime.
     private func respond(_ value: String, then next: Phase) {
-        pending = ""
+        accumulator.clear()
         responding = true
         queue.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             guard let self else { return }

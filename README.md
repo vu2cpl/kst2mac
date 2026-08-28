@@ -17,7 +17,7 @@ table with distance and beam heading from your own square.
 | Piece | State |
 |---|---|
 | Telnet codec (IAC stripping, option refusal) | done, unit-tested |
-| Prompt-driven login state machine | done — needs a live transcript to tighten the prompt matching |
+| Prompt-driven login state machine | done — CRLF-terminated prompts, 6 regression tests |
 | Chat message parser | done — accepts both `21:15` and `2115` stamps, neither yet seen live |
 | Chat room list | done — all 13 rooms, transcribed from a live menu |
 | Maidenhead distance / bearing | done, unit-tested |

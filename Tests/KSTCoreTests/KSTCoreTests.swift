@@ -143,3 +143,76 @@ final class MaidenheadTests: XCTestCase {
         XCTAssertTrue(north.bearing < 1 || north.bearing > 359, "got \(north.bearing)")
     }
 }
+
+/// Regression tests for the stall that kept two capture runs pinned at
+/// exactly 480 bytes: CRLF-terminated prompts were consumed by the line
+/// splitter, so the prompt detector never saw them.
+final class LineAccumulatorTests: XCTestCase {
+
+    /// The real banner, byte-for-byte, ending in a CRLF-terminated prompt.
+    private let banner =
+        "This telnet access is reserved to HAM only\r\n"
+        + "Your IP address is 10.0.0.1\r\n"
+        + "Login:\r\n"
+
+    func testCRLFTerminatedPromptIsStillFound() {
+        var acc = LineAccumulator()
+        let lines = acc.feed(banner)
+        XCTAssertEqual(lines.count, 3)
+        // The prompt was consumed as a complete line — the candidate must
+        // fall back to it rather than to the empty remainder.
+        XCTAssertEqual(acc.promptCandidate, "Login:")
+        XCTAssertTrue(LoginPrompt.login.matches(acc.promptCandidate))
+    }
+
+    func testBarePromptIsStillFound() {
+        var acc = LineAccumulator()
+        _ = acc.feed("Welcome\r\nLogin:")      // no trailing newline
+        XCTAssertEqual(acc.promptCandidate, "Login:")
+        XCTAssertTrue(LoginPrompt.login.matches(acc.promptCandidate))
+    }
+
+    /// The original bug was a race on packet segmentation: whether the
+    /// prompt was answered depended on where TCP split the stream. Every
+    /// split of the same banner must now behave identically.
+    func testEveryPacketSplitYieldsTheSamePrompt() {
+        let chars = Array(banner)
+        for cut in 1..<chars.count {
+            var acc = LineAccumulator()
+            _ = acc.feed(String(chars[0..<cut]))
+            _ = acc.feed(String(chars[cut...]))
+            XCTAssertTrue(LoginPrompt.login.matches(acc.promptCandidate),
+                          "split at \(cut) gave candidate \(acc.promptCandidate.debugDescription)")
+        }
+    }
+
+    func testChatMenuPromptIsRecognised() {
+        var acc = LineAccumulator()
+        _ = acc.feed("""
+        Chat selection ?\r
+        50/70 MHz..............1\r
+        144/432 MHz IARU R 3...9\r
+        Your choice           :\r
+
+        """)
+        XCTAssertTrue(LoginPrompt.room.matches(acc.promptCandidate))
+        XCTAssertFalse(LoginPrompt.login.matches(acc.promptCandidate))
+        XCTAssertFalse(LoginPrompt.password.matches(acc.promptCandidate))
+    }
+
+    func testClearForgetsTheAnsweredPrompt() {
+        var acc = LineAccumulator()
+        _ = acc.feed(banner)
+        acc.clear()
+        XCTAssertEqual(acc.promptCandidate, "")
+        XCTAssertFalse(LoginPrompt.login.matches(acc.promptCandidate))
+    }
+
+    /// A banner line that merely mentions a word must not be mistaken for
+    /// the prompt — the prompt shape (trailing colon) is required.
+    func testNonPromptLineIsNotAPrompt() {
+        XCTAssertFalse(LoginPrompt.login.matches("This telnet access is reserved to HAM only"))
+        XCTAssertFalse(LoginPrompt.room.matches("144/432 MHz IARU R 3...9"))
+        XCTAssertTrue(LoginPrompt.password.matches("Password:"))
+    }
+}

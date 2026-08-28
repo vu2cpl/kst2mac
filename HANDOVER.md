@@ -1,7 +1,7 @@
 # KST Mac — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.1 working, protocol partly verified
+**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.1 — login path fixed, never yet seen a chat message
 
 ---
 
@@ -67,13 +67,41 @@ immediately falsified two things v0.1 was built on:
   seconds-left / bytes-captured counter. A capture tool that shows nothing
   is not a capture tool.
 
-Also confirmed correct, which is worth recording: the prompts carry **no
-trailing newline** (the CRLF after each one in a transcript is the server
-acknowledging our answer), so `checkForPrompt()` inspecting the
-un-terminated tail is right, not a lucky guess.
+**2026-08-28, third pass — the 480-byte stall.** The second capture came
+back byte-for-byte identical to the first, in a different room, with
+`/HELP` unanswered. Two rooms cannot both stop at exactly 480 bytes, so it
+was never a quiet room: the client was stalling at the chat menu and had
+been all along.
 
-The capture joined a silent room, so no message lines were seen — the
-timestamp format and the roster are still open.
+Root cause, and it is a good one to remember: **Swift treats `"\r\n"` as a
+single `Character`**, so `pending.firstIndex(of: "\n")` never matched.
+Nothing was ever split into lines — the whole session accumulated in one
+buffer. `Login:` and `Password:` still got answered because the prompt test
+was a substring search over that entire buffer. The chat menu did not,
+because its test additionally required the buffer to *end* in a colon, and
+the buffer ended with the CR-LF after `Your choice           :`.
+
+Two fixes, both needed:
+
+- Split on **unicode scalars**, where `\r` and `\n` are separate. This also
+  makes a CR and its LF landing in different TCP segments a non-event.
+- Take the prompt candidate from the un-terminated remainder **or**, when
+  there is none, the last complete line — so a prompt is found whether or
+  not it carries a newline.
+
+Both now live in `LineAccumulator` / `LoginPrompt`, out of `KSTConnection`
+and therefore testable without a socket. Six regression tests cover it,
+including one that replays the real banner split at *every* byte offset and
+asserts the prompt is found each time — the packet-segmentation dependence
+is what made this look intermittent.
+
+I had also written into this file and into `docs/PROTOCOL.md` that the
+prompts carry no trailing newline, described as confirmed. It was inferred
+from a transcript, never tested, and it was wrong: `nc` shows `Login:` is
+CRLF-terminated. Both files are corrected.
+
+Still open: no message line has ever been seen, so the timestamp format and
+the roster layout remain entirely unverified.
 
 ## Open items
 

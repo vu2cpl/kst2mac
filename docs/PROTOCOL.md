@@ -35,14 +35,27 @@ Chat selection ?
 Your choice           :
 ```
 
-The prompts (`Login:`, `Password:`, `Your choice           :`) arrive with
-**no trailing newline** — the CRLF that follows each one in a transcript is
-the server acknowledging *our* answer, not part of the prompt. That is why
-`checkForPrompt()` inspects the un-terminated tail rather than completed
-lines, and it is confirmed correct.
+The prompts (`Login:`, `Password:`, `Your choice           :`) are each
+**CRLF-terminated**. The server writes the prompt, ends the line, and then
+waits. Verified by connecting with `nc` and sending nothing:
+
+```
+$ { sleep 6; } | nc www.on4kst.info 23000 | xxd
+... 4c 6f 67 69 6e 3a 0d 0a          Login:..
+```
+
+An earlier revision of this file claimed the opposite — that prompts carry
+no newline and the trailing CRLF in a transcript was the server
+acknowledging our answer. That was wrong, inferred from a transcript rather
+than tested, and it cost two dead capture runs. Treat anything in this file
+that has no reproduction command attached with the same suspicion.
 
 The banner also echoes your public IP back at you, so a transcript
 identifies the machine that recorded it.
+
+Note for anyone parsing this stream in Swift: `"\r\n"` is a **single**
+`Character`, so splitting on `"\n"` at the Character level never fires.
+Split on unicode scalars. This was the root cause of the 480-byte stall.
 
 ## Login — behaviour
 
