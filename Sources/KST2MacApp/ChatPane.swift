@@ -135,6 +135,25 @@ private struct LineRow: View {
         case .boilerplate:
             EmptyView()
 
+        case .spot(let canonical):
+            HStack(alignment: .top, spacing: 6) {
+                Text("DX")
+                    .font(Typography.mono(9, scale, weight: .semibold))
+                    .foregroundStyle(Palette.callsignTint)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(Palette.callsignTint.opacity(0.18), in: RoundedRectangle(cornerRadius: 3))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    Text(canonical)
+                        .font(Typography.mono(11, scale))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+            .padding(.vertical, 1)
+
         case .roster:
             // Belongs in the station table, not the chat log.
             EmptyView()

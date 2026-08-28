@@ -29,6 +29,7 @@ table with distance and beam heading from your own square.
 | User-list / roster parser | done — `/SHow USer`, prompt-delimited, unit-tested |
 | Scrollback backfill on join | done — `/SHOW MSG` |
 | Live room switching | done — `/CHAT`, no reconnect |
+| DX-cluster relay | done — serves spots on 127.0.0.1:7373 for dxca or any cluster client |
 | Alert sounds | done — per event, plays even when frontmost, burst-suppressed |
 | Mention notifications | done — banner when not frontmost, plus Dock badge |
 | Multiple windows | done — concurrent logins verified |
@@ -148,6 +149,32 @@ global.
 The server allows several simultaneous logins on one callsign — three
 windows in three rooms have been run with no session dropped — so no SSID
 suffix is needed.
+
+## Feeding spots to a DX cluster client
+
+Settings ▸ **DX spot relay** turns KST2Mac into a DX-cluster telnet node
+that forwards ON4KST spots. Nothing is translated: with `/SET DXCLX` the
+chat already emits standard fixed-column `DX de …` lines, so they are
+passed through verbatim.
+
+In [dxca](https://github.com/vu2cpl/dxca), add it as one more node:
+
+```toml
+[[cluster_nodes]]
+name = "KST2Mac"
+host = "127.0.0.1"
+port = 7373
+login_call = "VU2CPL"
+```
+
+Two things to know:
+
+- Spots arrive **disabled** on the ON4KST side. Send `/SET DXCLX` in a
+  connected pane once, or nothing reaches the relay to forward.
+- The feed is **unauthenticated** — anyone who connects gets the spots —
+  so it binds `127.0.0.1` only. "Allow connections from the network"
+  opens it to the LAN; leave it off unless something on another machine
+  needs it.
 
 ## Capturing the spot format
 

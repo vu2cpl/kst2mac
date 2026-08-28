@@ -7,6 +7,10 @@ struct KST2MacApp: App {
     init() {
         // Before any @AppStorage is read.
         Migration.runIfNeeded()
+        // The relay host is a lazy singleton, so without this it is not
+        // constructed until Settings is opened — and a relay that only
+        // starts when you look at it is not serving anything.
+        _ = SpotRelayHost.shared
     }
 
     var body: some Scene {

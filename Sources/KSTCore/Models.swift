@@ -86,6 +86,9 @@ public struct KSTLine: Identifiable, Sendable {
         /// the CLX cluster hint and the "/HELP" pointer. Shown once would
         /// be generous; shown on every room switch is noise.
         case boilerplate
+        /// A DX spot, normalised to a standard cluster line beginning
+        /// `DX de ` whichever format the server sent it in.
+        case spot(String)
         /// A row of `/SHow USer` output. Feeds the station table, not the
         /// chat log.
         case roster(Station)

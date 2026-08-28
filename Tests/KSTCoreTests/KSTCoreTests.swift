@@ -600,3 +600,59 @@ final class PreambleTests: XCTestCase {
         XCTAssertFalse(Preamble.addresses("VU2CPL", in: "VU2CPLX hello"))
     }
 }
+
+/// Spot lines, captured from a live session on 2026-08-28. dxca parses
+/// with a literal `strip_prefix("DX de ")`, so whatever the chat sends
+/// must be normalised to start exactly there or the relay is useless.
+final class SpotLineTests: XCTestCase {
+
+    private let parser = LineParser()
+
+    private func canonical(_ line: String) -> String? {
+        guard case .spot(let text) = parser.parse(line).kind else { return nil }
+        return text
+    }
+
+    /// `/SET DXCLX` — already a standard fixed-column cluster line.
+    func testCLXFormatPassesThroughUnchanged() {
+        let line = "DX de w9ffa:      3573.6  KS0AA        FT8, EM69ij <-> EM28           1241Z"
+        XCTAssertEqual(canonical(line), line)
+    }
+
+    func testCLXLineWithEmptyComment() {
+        let line = "DX de na6jd:      3573.0  CX6TU                                       0948Z"
+        XCTAssertEqual(canonical(line), line)
+    }
+
+    /// `/SET DX` — the chat prefixes its own stamp, which a cluster
+    /// client will not recognise. The prefix must come off.
+    func testChatPrefixedFormatIsNormalised() throws {
+        let parsed = parser.parse("1251Z DX de nl7m: 1824.5 FK8HC cq")
+        guard case .spot(let text) = parsed.kind else { return XCTFail("expected a spot") }
+        XCTAssertEqual(text, "DX de nl7m: 1824.5 FK8HC cq")
+        XCTAssertTrue(text.hasPrefix("DX de "), "dxca does a literal strip_prefix")
+        XCTAssertEqual(parsed.stamp, "1251Z")
+    }
+
+    func testChatPrefixedWithLongComment() {
+        XCTAssertEqual(canonical("1241Z DX de w9ffa: 3573.6 KS0AA FT8, EM69ij <-> EM28"),
+                       "DX de w9ffa: 3573.6 KS0AA FT8, EM69ij <-> EM28")
+    }
+
+    /// Chat traffic must never be mistaken for a spot — a message that
+    /// merely mentions a spot would otherwise be relayed to the cluster.
+    func testChatMessagesAreNotSpots() {
+        XCTAssertNil(canonical("0846Z OZ5QF Jens 2m> DX de somewhere nice"))
+        XCTAssertNil(canonical("1250Z VU2CPL Low Band (160-80m) chat>"))
+        XCTAssertNil(canonical("DX messages allowed (CLX format)."))
+        XCTAssertNil(canonical("Use the inline ON4KST-2 CLX DX cluster for your spot."))
+    }
+
+    func testSpotWinsOverTheMessageParser() {
+        // The chat-prefixed form is shaped a little like a message line;
+        // spots are tested first for exactly that reason.
+        guard case .spot = parser.parse("1251Z DX de nl7m: 1824.5 FK8HC cq").kind else {
+            return XCTFail("a spot must not be parsed as a message")
+        }
+    }
+}

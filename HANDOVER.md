@@ -615,16 +615,53 @@ title handling whenever the toolbar rebuilds — several times a second on a
 busy chat — which undid `titleVisibility = .hidden`. `WindowAccessor` now
 re-applies after SwiftUI's pass rather than during it.
 
+**2026-08-28, twenty-fifth pass — the DX-cluster relay.** KST2Mac now
+serves its spots as a cluster node on 127.0.0.1:7373, which dxca dials as
+one more `[[cluster_nodes]]` entry.
+
+It is a **relay, not a translator**, and that is the whole design: with
+`/SET DXCLX` the chat already emits the exact fixed-column `DX de …` line
+a cluster client expects, so the line is forwarded byte-for-byte. The only
+normalisation is stripping the chat's `HHMMZ ` prefix from `/SET DX`-format
+spots, because dxca parses with a literal `strip_prefix("DX de ")` and
+would otherwise reject them. Six tests cover both formats against captured
+lines.
+
+The handshake was written against dxca's actual client
+(`crates/dxca-connect/src/dxcluster/mod.rs`), not guessed: it watches for
+`login:` / `callsign:` / `call:` as case-insensitive substrings, sends its
+`login_call`, uses no password, and takes a welcome line or any data as
+evidence the session is alive. The banner and prompt satisfy all of that.
+Verified end to end with `nc`.
+
+Three things that bit, worth remembering:
+
+- **The relay never started.** `SpotRelayHost` is a lazy singleton and
+  nothing referenced it at launch, so it was only constructed when
+  Settings was opened. `KST2MacApp.init` touches it now.
+- **`@AppStorage` in an ObservableObject does not drive `didSet`
+  dependably** — toggling the setting never started the listener. Plain
+  `@Published` over `UserDefaults` instead. `@AppStorage` is a View
+  wrapper; treat it as one.
+- **`requiredLocalEndpoint` does not confine an `NWListener`** — it reads
+  as if it should, and silently fails to bind at all. The working way is
+  `parameters.requiredInterfaceType = .loopback`, verified by connecting
+  from the LAN address and being refused.
+
+Loopback is the default because the feed is unauthenticated: anyone who
+connects gets the spots. There is a setting to open it to the network,
+off unless asked for.
+
+Port 7373 was checked against `/etc/services` and the shack's ports
+(2237, 2333–2335, 7550, 7575, 7580, 8300, 8883, 1883, 23000) — no clash.
+
 ## Open items
 
 **Ready to build**
 
-1. **Bridge spots into dxca.** Unblocked — `/SET DXCLX` emits standard
-   fixed-column `DX de …` cluster lines (see `docs/PROTOCOL.md`), so this
-   is a verbatim relay. Shape: KST2Mac serves a small DX-cluster telnet
-   node; dxca dials it as one more `[[cluster_nodes]]` entry
-   (host / port / login_call). Needs a listener, a login prompt, and
-   forwarding of any line matching `^DX de `.
+1. **Wire dxca to the relay** — the node exists and is verified; the
+   remaining step is adding the `[[cluster_nodes]]` entry on the dxca side
+   and confirming spots land in its pipeline. Nothing in KST2Mac blocks it.
 
 2. **Away toggle** — `/SET HERE` / `/UNSET HERE` (§5.3.4). One command,
    and it is what puts the brackets round a callsign in everyone else's

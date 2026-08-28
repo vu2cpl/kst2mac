@@ -57,6 +57,18 @@ public struct LineParser {
         "web http://www.on4kst.com",
     ]
 
+    /// A DX spot in either of the two formats the chat emits.
+    ///
+    /// `/SET DXCLX` gives standard fixed-column cluster lines that already
+    /// start with `DX de `. `/SET DX` gives the same content prefixed with
+    /// the chat's own `HHMMZ`, which a cluster client will not recognise —
+    /// dxca does a literal `strip_prefix("DX de ")` — so the prefix is
+    /// stripped and the canonical part kept.
+    private static let spot = try! NSRegularExpression(
+        pattern: #"^\s*(?:(\d{4})Z\s+)?(DX de\s+.+)$"#,
+        options: [.caseInsensitive]
+    )
+
     /// A locator anywhere in a line: 4 or 6 characters, e.g. JO20 / MK68qm.
     private static let locator = try! NSRegularExpression(
         pattern: #"\b([A-R]{2}\d{2}(?:[A-X]{2})?)\b"#,
@@ -76,6 +88,14 @@ public struct LineParser {
             return KSTLine(raw: raw,
                            kind: .prompt(callsign: g(2).uppercased(), chat: g(3)),
                            stamp: g(1))
+        }
+
+        if let sp = Self.spot.firstMatch(in: raw, range: range),
+           let canonical = Range(sp.range(at: 2), in: raw) {
+            let stamp = Range(sp.range(at: 1), in: raw).map { String(raw[$0]) }
+            return KSTLine(raw: raw,
+                           kind: .spot(String(raw[canonical]).trimmingCharacters(in: .whitespaces)),
+                           stamp: stamp.map { $0 + "Z" })
         }
 
         if let w = Self.welcome.firstMatch(in: raw, range: range),

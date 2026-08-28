@@ -221,6 +221,11 @@ final class AppModel: ObservableObject {
         case .status(let text):
             status = text
         case .line(let line):
+            if case .spot(let canonical) = line.kind {
+                // Verbatim to any connected cluster client. Nothing is
+                // re-encoded — that is the whole point of the relay.
+                SpotRelayHost.shared.broadcast(canonical)
+            }
             if case .roster = line.kind { return }        // the table shows these
             if case .boilerplate = line.kind { return }   // fixed banner text
             if case .joined(let chat) = line.kind {

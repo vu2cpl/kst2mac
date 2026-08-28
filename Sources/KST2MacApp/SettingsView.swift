@@ -12,6 +12,8 @@ struct SettingsView: View {
 
     @AppStorage("sound.volume") private var soundVolume: Double = 0.7
 
+    @StateObject private var relay = SpotRelayHost.shared
+
     @State private var newPassword = ""
     @State private var note: String?
 
@@ -72,6 +74,36 @@ struct SettingsView: View {
                 }
                 Text("Sounds play whether or not KST2Mac is in front — that is the case a notification banner cannot cover. Repeats within two seconds are suppressed, and a backlog arriving on join stays silent.")
                     .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section("DX spot relay") {
+                Toggle("Serve spots as a DX-cluster node", isOn: $relay.enabled)
+                HStack {
+                    Text("Port")
+                    TextField("", value: $relay.port, format: .number.grouping(.never))
+                        .frame(width: 70)
+                    Button("Restart") { relay.restart() }
+                        .disabled(!relay.enabled)
+                }
+                Toggle("Allow connections from the network", isOn: $relay.allowNetwork)
+                    .help("Off: only this Mac can connect. The feed is unauthenticated.")
+                LabeledContent("Status") {
+                    Text(relay.status)
+                        .foregroundStyle(relay.clients > 0 ? .green : .secondary)
+                }
+                if relay.clients > 0 || relay.forwarded > 0 {
+                    LabeledContent("Traffic") {
+                        Text("\(relay.clients) client(s), \(relay.forwarded) spots forwarded")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text("Forwards ON4KST spots verbatim as standard `DX de` cluster lines. Enable spots on the server first with /SET DXCLX in a connected pane, or nothing arrives to forward.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("In dxca add:  [[cluster_nodes]] name = \"KST2Mac\", host = \"127.0.0.1\", port = \(relay.port), login_call = \"\(callsign.isEmpty ? "YOURCALL" : callsign)\"")
+                    .font(.caption.monospaced()).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
