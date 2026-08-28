@@ -771,6 +771,28 @@ state rebuilds constantly. `WindowAccessor` now observes
 every update. It cannot loop because `configure` no-ops when the window is
 already correct, and setting nothing posts nothing.
 
+**2026-08-28, thirty-first pass — the roster in the wrong pane.** With
+room switching fixed, the next bug surfaced: after a switch the entire
+roster appeared in **Server output** while the station table held four
+junk rows, one of them `144 | MHz`.
+
+Cause: `requestRoster()` armed `expecting = .roster` when the roster was
+*asked for*, but the command is queued and may not go out for a minute.
+Everything arriving in that gap — the chat-selection menu, a welcome line,
+live conversation — was parsed as roster rows. `144/432 MHz............2`
+parses as callsign `144/432`, hence `144 | MHz`. By the time the real
+reply arrived, something else had cleared the flag, so it fell through to
+the server log.
+
+Collection is now armed inside `write`, at the moment the command
+actually leaves. **Any reply-scoped state must be armed at send time, not
+at request time** — with a command queue between the two, "the next thing
+that arrives" is not the reply.
+
+`RosterParser` also rejects any line containing a run of dots, so
+menu padding cannot produce a station however the timing goes. Three tests
+cover the menu lines that were being accepted.
+
 ## Open items
 
 **Ready to build**

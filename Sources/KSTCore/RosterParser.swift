@@ -34,6 +34,12 @@ public enum RosterParser {
     )
 
     public static func parse(_ raw: String) -> Station? {
+        // The chat-selection menu is dot-padded — "144/432 MHz......2" —
+        // and its first token parses as a callsign, so it produced roster
+        // rows like "144 / MHz" when collection was armed at the wrong
+        // moment. No real roster row contains a run of dots.
+        guard !raw.contains("...") else { return nil }
+
         let parts = raw.split(whereSeparator: { $0 == " " || $0 == "\t" }).map(String.init)
         guard let first = parts.first else { return nil }
 

@@ -741,3 +741,33 @@ final class SpotParserTests: XCTestCase {
         XCTAssertFalse(s.raw.isEmpty)
     }
 }
+
+/// Lines that must never become roster rows, however the connection is
+/// feeling. Roster collection is armed when `/SHOW USER` is written, but
+/// a parser that accepts menu text turns any mis-timing into junk in the
+/// station table — which is exactly what happened: "144 | MHz".
+final class RosterFalsePositiveTests: XCTestCase {
+
+    func testChatMenuLinesAreNotRosterRows() {
+        for line in [
+            "144/432 MHz............2",
+            "50/70 MHz..............1",
+            "kHz (2000-630m).......10",
+            "144/432 MHz IARU R 3...9",
+        ] {
+            XCTAssertNil(RosterParser.parse(line), "menu line parsed as a station: \(line)")
+        }
+    }
+
+    /// `/SHow CONFig` prints the operator's own details in a roster-like
+    /// shape; it is only safe because collection is scoped to the command.
+    func testConfigLineStillParsesAndIsWhyScopingMatters() {
+        XCTAssertNotNil(RosterParser.parse("VU2CPL Manoj MK83TE"))
+    }
+
+    func testRealRosterRowsStillParse() {
+        XCTAssertNotNil(RosterParser.parse("ON4KST           JO20EP Alain"))
+        XCTAssertNotNil(RosterParser.parse("(OY4TN)          IP62NB Trygvi"))
+        XCTAssertNotNil(RosterParser.parse("OZ7UV            JO65DH KST4Contest1263"))
+    }
+}

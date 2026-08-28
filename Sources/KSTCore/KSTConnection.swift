@@ -246,8 +246,11 @@ public final class KSTConnection: @unchecked Sendable {
     public func requestRoster(userInitiated: Bool = false) {
         queue.async {
             guard self.phase == .inChat else { return }
-            self.expecting = .roster
-            self.rosterBuffer = []
+            // Deliberately does *not* arm roster collection here: the
+            // command may sit in the queue for a minute, and everything
+            // arriving meanwhile — the chat menu, a welcome line, live
+            // conversation — would be parsed as roster rows. Arming
+            // happens in `write`, when the command actually goes out.
             if userInitiated {
                 self.write("/SHOW USER")
             } else {
@@ -306,6 +309,13 @@ public final class KSTConnection: @unchecked Sendable {
         // cooling-off window, so our own queue must respect it too.
         if line.hasPrefix("/") {
             nextCommandAllowed = Date().addingTimeInterval(Self.commandInterval)
+        }
+        // Arm reply collection at the moment the command leaves, not when
+        // it was asked for. The gap between the two is where a queued
+        // command's "reply" was actually unrelated traffic.
+        if line.uppercased().hasPrefix("/SHOW USER") || line.uppercased().hasPrefix("/SH USER") {
+            expecting = .roster
+            rosterBuffer = []
         }
         guard let data = (line + "\r\n").data(using: .utf8) else { return }
         connection?.send(content: data, completion: .contentProcessed { [weak self] error in
