@@ -43,7 +43,6 @@ $PB -c "Add :CFBundleExecutable string $BIN_NAME" "$APP_BUNDLE_DIR/Contents/Info
 $PB -c "Add :CFBundlePackageType string APPL"     "$APP_BUNDLE_DIR/Contents/Info.plist" 2>/dev/null || true
 if [ -f "$APP_BUNDLE_DIR/Contents/Resources/AppIcon.icns" ]; then
     $PB -c "Add :CFBundleIconFile string AppIcon" "$APP_BUNDLE_DIR/Contents/Info.plist" 2>/dev/null || true
-    $PB -c "Add :CFBundleIconName string AppIcon" "$APP_BUNDLE_DIR/Contents/Info.plist" 2>/dev/null || true
 fi
 
 # Ad-hoc sign so Gatekeeper lets it launch locally. The entitlements file

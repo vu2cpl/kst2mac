@@ -21,7 +21,12 @@ struct KST2MacApp: App {
             CommandGroup(replacing: .newItem) {
                 NewWindowButton()
             }
+            CommandGroup(after: .toolbar) {
+                TextSizeCommands()
+            }
             CommandMenu("Chat") {
+                AddPaneButton()
+                Divider()
                 ClearWatchesButton()
             }
         }
@@ -71,13 +76,14 @@ struct ChatWindow: View {
         .toolbar {
             ToolbarItem {
                 Button {
-                    paneIDs.append(store.newSession())
+                    addPane()
                 } label: {
-                    Label("Add chat pane", systemImage: "plus.rectangle")
+                    Label("Add chat", systemImage: "rectangle.split.1x2")
                 }
                 .help("Add another chat below, with its own room and connection")
             }
         }
+        .focusedSceneValue(\.addPane, addPane)
         .onAppear(perform: restore)
         .onChange(of: paneIDs) { _ in
             storedIDs = paneIDs.map(\.uuidString).joined(separator: ",")
@@ -102,6 +108,10 @@ struct ChatWindow: View {
         // than giving the first its ideal size and squeezing the rest
         // below their minimum, where they get clipped.
         .frame(minHeight: 240, maxHeight: .infinity)
+    }
+
+    private func addPane() {
+        paneIDs.append(store.newSession())
     }
 
     private func restore() {
@@ -135,6 +145,29 @@ private struct ClearWatchesButton: View {
     var body: some View {
         Button("Clear all watches") { model.clearWatches() }
             .disabled(model.explicitWatches.isEmpty)
+    }
+}
+
+/// Adding a chat below is a window action, so it reaches the focused
+/// window through the focused-value system rather than a shared object.
+struct AddPaneKey: FocusedValueKey {
+    typealias Value = () -> Void
+}
+
+extension FocusedValues {
+    var addPane: (() -> Void)? {
+        get { self[AddPaneKey.self] }
+        set { self[AddPaneKey.self] = newValue }
+    }
+}
+
+private struct AddPaneButton: View {
+    @FocusedValue(\.addPane) private var addPane
+
+    var body: some View {
+        Button("Add chat below") { addPane?() }
+            .keyboardShortcut("d", modifiers: [.command, .shift])
+            .disabled(addPane == nil)
     }
 }
 

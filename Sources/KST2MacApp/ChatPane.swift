@@ -3,6 +3,7 @@ import KSTCore
 
 struct ChatPane: View {
     @EnvironmentObject private var model: AppModel
+    @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
     @FocusState private var composerFocused: Bool
 
     var body: some View {
@@ -11,7 +12,7 @@ struct ChatPane: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(model.lines) { line in
-                            LineRow(line: line, emphasis: model.emphasis(for: line))
+                            LineRow(line: line, emphasis: model.emphasis(for: line), scale: scale)
                                 .id(line.id)
                         }
                     }
@@ -36,6 +37,7 @@ private struct LineRow: View {
     @EnvironmentObject private var model: AppModel
     let line: KSTLine
     let emphasis: AppModel.Emphasis
+    let scale: Double
 
     private var fill: Color {
         switch emphasis {
@@ -68,15 +70,15 @@ private struct LineRow: View {
                     .frame(width: 2)
 
                 Text(line.stamp ?? "")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(Typography.mono(11, scale))
                     .foregroundStyle(.tertiary)
-                    .frame(width: 46, alignment: .leading)
+                    .frame(width: 46 * Typography.clamped(scale), alignment: .leading)
 
                 Button {
                     model.directedTo = from
                 } label: {
                     Text(from)
-                        .font(.system(.body, design: .monospaced).weight(.semibold))
+                        .font(Typography.mono(13, scale, weight: .semibold))
                         .foregroundStyle(Palette.color(for: from))
                 }
                 .buttonStyle(.plain)
@@ -84,12 +86,12 @@ private struct LineRow: View {
 
                 if let name {
                     Text(name)
-                        .font(.callout)
+                        .font(Typography.text(12, scale))
                         .foregroundStyle(.secondary)
                 }
                 if let to {
                     Text(to)
-                        .font(.system(.caption, design: .monospaced).weight(.semibold))
+                        .font(Typography.mono(11, scale, weight: .semibold))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(Palette.color(for: to).opacity(0.22), in: Capsule())
@@ -97,6 +99,7 @@ private struct LineRow: View {
                 }
 
                 Text(MessageText.attributed(text))
+                    .font(Typography.text(13, scale))
                     .textSelection(.enabled)
 
                 Spacer(minLength: 0)
@@ -111,7 +114,7 @@ private struct LineRow: View {
             HStack(spacing: 8) {
                 VStack { Divider() }
                 Text(chat.uppercased())
-                    .font(.caption2.weight(.semibold))
+                    .font(Typography.text(10, scale, weight: .semibold))
                     .tracking(0.8)
                     .foregroundStyle(Color.accentColor)
                     .padding(.horizontal, 8)
@@ -135,7 +138,7 @@ private struct LineRow: View {
 
         case .local:
             Text(line.raw)
-                .font(.caption)
+                .font(Typography.text(12, scale))
                 .foregroundStyle(.orange)
 
         case .other:
@@ -143,7 +146,7 @@ private struct LineRow: View {
             // dropped, so banners, /HELP output and the user list are
             // never invisible just because the parser doesn't know them.
             Text(line.raw)
-                .font(.system(.caption, design: .monospaced))
+                .font(Typography.mono(11, scale))
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
         }
@@ -152,6 +155,7 @@ private struct LineRow: View {
 
 private struct Composer: View {
     @EnvironmentObject private var model: AppModel
+    @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
     @FocusState.Binding var focused: Bool
 
     var body: some View {
@@ -159,7 +163,7 @@ private struct Composer: View {
             if let to = model.directedTo {
                 HStack(spacing: 4) {
                     Text(model.replyWithPreamble ? to : "/CQ \(to)")
-                        .font(.caption.monospaced())
+                        .font(Typography.mono(11, scale, weight: .semibold))
                     Button {
                         model.directedTo = nil
                     } label: {
@@ -179,8 +183,8 @@ private struct Composer: View {
                       : "/CQ — highlights for every chat user")
             }
 
-            TextField(model.isInChat ? "Message" : "Not connected",
-                      text: $model.draft)
+            TextField("Message", text: $model.draft)
+                .font(Typography.text(13, scale))
                 .textFieldStyle(.roundedBorder)
                 .focused($focused)
                 .disabled(!model.isInChat)

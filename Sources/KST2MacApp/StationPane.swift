@@ -5,15 +5,29 @@ import KSTCore
 /// reason a VHF operator keeps the chat open at all.
 struct StationPane: View {
     @EnvironmentObject private var model: AppModel
+    @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
     @State private var selection: Station.ID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(Typography.text(11, scale))
+                    .foregroundStyle(Palette.utc)
+                Text("Stations")
+                    .font(Typography.text(11, scale, weight: .semibold))
+                    .foregroundStyle(Palette.utc)
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Palette.utc.opacity(0.10))
+
             Table(model.stations, selection: $selection) {
                 TableColumn("Call") { s in
                     HStack(spacing: 4) {
                         Text(s.callsign)
-                            .font(.system(.body, design: .monospaced).weight(.medium))
+                            .font(Typography.mono(13, scale, weight: .medium))
                             // Same colour the callsign has in the log, so
                             // the two panes read as one thing.
                             .foregroundStyle(s.isAway
@@ -33,32 +47,35 @@ struct StationPane: View {
                         }
                     }
                 }
-                .width(min: 92)
+                .width(min: 88, ideal: 104, max: 150)
 
                 TableColumn("Name") { s in
-                    Text(s.name ?? "").foregroundStyle(.secondary)
+                    Text(s.name ?? "")
+                        .font(Typography.text(13, scale))
+                        .foregroundStyle(.secondary)
                 }
-                .width(min: 60)
+                .width(min: 64, ideal: 96,  max: 200)
 
                 TableColumn("Loc") { s in
-                    Text(s.locator ?? "").font(.system(.caption, design: .monospaced))
+                    Text(s.locator ?? "")
+                        .font(Typography.mono(13, scale))
                 }
-                .width(min: 56)
+                .width(min: 62, ideal: 70,  max: 90)
 
                 TableColumn("km") { s in
                     let path = model.path(to: s)
                     Text(path.map { String(format: "%.0f", $0.distanceKm) } ?? "")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(Typography.mono(13, scale))
                         .foregroundStyle(path.map { AnyShapeStyle(Palette.distance($0.distanceKm)) }
                                          ?? AnyShapeStyle(.secondary))
                 }
-                .width(min: 48)
+                .width(min: 52, ideal: 58,  max: 80)
 
                 TableColumn("Bearing") { s in
                     Text(model.path(to: s).map { String(format: "%.0f°", $0.bearing) } ?? "")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(Typography.mono(13, scale))
                 }
-                .width(min: 52)
+                .width(min: 56, ideal: 64,  max: 90)
             }
             .contextMenu(forSelectionType: Station.ID.self) { ids in
                 if let call = ids.first {
@@ -76,7 +93,7 @@ struct StationPane: View {
                 Text(model.stationsAreStale
                      ? "previous room — asking…"
                      : "\(model.stations.filter { !$0.isAway }.count) here, \(model.stations.count) listed")
-                    .font(.caption)
+                    .font(Typography.text(11, scale))
                     .foregroundStyle(model.stationsAreStale ? .orange : .secondary)
                 Button {
                     model.refreshRoster()
@@ -89,7 +106,7 @@ struct StationPane: View {
                 Spacer()
                 if model.homeGrid.isEmpty {
                     Text("Set your locator in Settings for distances")
-                        .font(.caption).foregroundStyle(.orange)
+                        .font(Typography.text(11, scale)).foregroundStyle(.orange)
                 }
             }
             .padding(.horizontal, 8).padding(.vertical, 4)

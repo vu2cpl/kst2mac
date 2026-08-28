@@ -148,6 +148,12 @@ The server allows several simultaneous logins on one callsign — three
 windows in three rooms have been run with no session dropped — so no SSID
 suffix is needed.
 
+## Text size
+
+View ▸ Bigger text / Smaller text / Actual size (⌘+, ⌘-, ⌘0) scales every
+font in the app. It defaults larger than the macOS norm because this is
+read from across a shack.
+
 ## Conventions
 
 Shack-wide rules apply (see `~/.claude/CLAUDE.md`): CDP (Commit, Document,

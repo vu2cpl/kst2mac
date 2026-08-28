@@ -9,31 +9,47 @@ struct ContentView: View {
     var onClose: (() -> Void)?
 
     @EnvironmentObject private var model: AppModel
+    @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
     @State private var showLogin = false
+
+    /// One colour carries connection state through the whole pane — the
+    /// header edge, the status dot and the status text — so a glance at
+    /// any part of it tells you where you stand.
+    private var stateColor: Color {
+        if model.isInChat { return Palette.connected }
+        if model.isConnected { return Palette.connecting }
+        return Palette.offline
+    }
 
     private var statusBar: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(model.isInChat ? .green : (model.isConnected ? .orange : .secondary))
+                .fill(stateColor)
                 .frame(width: 8, height: 8)
             Text(model.status)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(Typography.text(11, scale))
+                .foregroundStyle(stateColor)
                 .lineLimit(1)
             Spacer()
             if !model.serverTime.isEmpty {
                 Text(model.serverTime)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .font(Typography.mono(11, scale, weight: .medium))
+                    .foregroundStyle(Palette.utc)
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
+        .background(stateColor.opacity(0.08))
         .background(.bar)
     }
 
     private var header: some View {
         HStack(spacing: 8) {
+            Rectangle()
+                .fill(stateColor)
+                .frame(width: 3, height: 18)
+                .cornerRadius(1.5)
+
             Picker("", selection: Binding(
                 get: { model.room },
                 set: { model.room = $0 })
@@ -44,7 +60,7 @@ struct ContentView: View {
             }
             .labelsHidden()
             .disabled(model.isConnected && !model.isInChat)
-            .frame(width: 210)
+            .frame(width: 210 * min(Typography.clamped(scale), 1.4))
             .help("Switches room in place while connected (/CHAT)")
 
             Spacer()
@@ -73,9 +89,12 @@ struct ContentView: View {
                     showLogin = true
                 }
             }
+            .buttonStyle(.borderedProminent)
+            .tint(model.isConnected ? Palette.offline : Palette.connected)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+        .background(stateColor.opacity(0.10))
         .background(.bar)
     }
 
@@ -90,7 +109,7 @@ struct ContentView: View {
             HSplitView {
                 ChatPane()
                 StationPane()
-                    .frame(minWidth: 280, idealWidth: 340)
+                    .frame(minWidth: 340, idealWidth: 420)
             }
             .frame(maxHeight: .infinity)
 

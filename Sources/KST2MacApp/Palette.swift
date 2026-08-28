@@ -74,4 +74,14 @@ enum Palette {
 
     static let ownFill      = Color(red: 0.55, green: 0.60, blue: 0.75).opacity(0.11)
     static let ownBar       = Color(red: 0.58, green: 0.64, blue: 0.80)
+
+    /// Connection state, used on the header edge, the status dot and the
+    /// status text together so any part of the pane answers "am I on?".
+    static let connected  = Color(red: 0.30, green: 0.78, blue: 0.48)
+    static let connecting = Color(red: 0.97, green: 0.70, blue: 0.30)
+    static let offline    = Color(red: 0.55, green: 0.57, blue: 0.62)
+
+    /// The server's UTC clock — distinct from everything else, because it
+    /// is the one number on screen that is not about a station.
+    static let utc = Color(red: 0.55, green: 0.75, blue: 0.92)
 }
