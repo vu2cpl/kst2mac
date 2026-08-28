@@ -42,7 +42,9 @@ struct KST2MacApp: App {
 
         Settings {
             SettingsView()
-                .frame(width: 420)
+                // Tall enough that Rooms and the relay are not below the
+                // fold — the panel has six sections now.
+                .frame(width: 460, height: 620)
         }
     }
 }

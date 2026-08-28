@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage("sound.volume") private var soundVolume: Double = 0.7
 
     @StateObject private var relay = SpotRelayHost.shared
+    @StateObject private var order = RoomOrder.shared
 
     @State private var newPassword = ""
     @State private var note: String?
@@ -73,6 +74,37 @@ struct SettingsView: View {
                     Slider(value: $soundVolume, in: 0...1)
                 }
                 Text("Sounds play whether or not KST2Mac is in front — that is the case a notification banner cannot cover. Repeats within two seconds are suppressed, and a backlog arriving on join stays silent.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section("Rooms") {
+                ForEach(order.ordered) { room in
+                    HStack(spacing: 6) {
+                        Button {
+                            order.togglePin(room)
+                        } label: {
+                            Image(systemName: order.isPinned(room) ? "pin.fill" : "pin")
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(order.isPinned(room) ? Palette.callsignTint : .secondary)
+                        .help(order.isPinned(room) ? "Unpin" : "Pin to the top of the picker")
+
+                        Text(room.title)
+                            .foregroundStyle(order.isPinned(room) ? .primary : .secondary)
+                        Spacer()
+
+                        if order.isPinned(room) {
+                            Button { order.move(room, by: -1) } label: { Image(systemName: "chevron.up") }
+                                .buttonStyle(.borderless)
+                                .disabled(order.pinned.first == room)
+                            Button { order.move(room, by: 1) } label: { Image(systemName: "chevron.down") }
+                                .buttonStyle(.borderless)
+                                .disabled(order.pinned.last == room)
+                        }
+                    }
+                }
+                Text("Pinned rooms come first in every pane's picker, in this order. The rest follow in the server's own order.")
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

@@ -10,6 +10,7 @@ struct ContentView: View {
 
     @EnvironmentObject private var model: AppModel
     @AppStorage(Typography.key) private var scale: Double = Typography.defaultScale
+    @StateObject private var order = RoomOrder.shared
     @State private var showLogin = false
     /// Per pane, and off by default: the raw feed is for when something
     /// is wrong, not for reading.
@@ -57,7 +58,13 @@ struct ContentView: View {
                 get: { model.room },
                 set: { model.room = $0 })
             ) {
-                ForEach(ChatRoom.allCases) { room in
+                ForEach(order.pinned) { room in
+                    Text(room.title).tag(room)
+                }
+                if !order.pinned.isEmpty && !order.unpinned.isEmpty {
+                    Divider()
+                }
+                ForEach(order.unpinned) { room in
                     Text(room.title).tag(room)
                 }
             }

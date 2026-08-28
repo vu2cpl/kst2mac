@@ -793,6 +793,20 @@ that arrives" is not the reply.
 menu padding cannot produce a station however the timing goes. Three tests
 cover the menu lines that were being accepted.
 
+**2026-08-28, thirty-second pass — room ordering.** The server's menu
+order is fixed and arbitrary from any one operator's point of view: the
+two rooms actually used sit at positions 5 and 1 with eleven unused ones
+in between.
+
+`RoomOrder` lets any room be pinned to the top of every pane's picker, in
+a chosen order, with the rest following in the server's own order below a
+divider. Settings ▸ Rooms has the pins and up/down arrows. Defaults to Low
+Band and 50/70 MHz — a guess, but a changeable one.
+
+The pins are display order only. The menu digits and `/CHAT` tokens are
+untouched, so nothing about the protocol depends on how the list is
+arranged.
+
 ## Open items
 
 **Ready to build**
