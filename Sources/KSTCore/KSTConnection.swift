@@ -84,6 +84,28 @@ public final class KSTConnection: @unchecked Sendable {
     /// line confirms the move.
     private var pendingRoomChoice: ChatRoom?
 
+    /// When the connection first entered `.waiting`, so a refusal that
+    /// never clears becomes a reported failure instead of a permanent
+    /// amber status.
+    private var waitingSince: Date?
+    private static let waitLimit: TimeInterval = 60
+
+    /// NWError numbers seen in practice, in words. The raw
+    /// "Network.NWError error 61" tells an operator nothing.
+    static func describe(_ error: NWError) -> String {
+        if case .posix(let code) = error {
+            switch code {
+            case .ECONNREFUSED: return "Server refused the connection"
+            case .ETIMEDOUT:    return "Connection timed out"
+            case .ENETDOWN, .ENETUNREACH: return "No route to the server"
+            case .EHOSTUNREACH: return "Server unreachable"
+            default: break
+            }
+        }
+        if case .dns = error { return "Could not look up the server name" }
+        return error.localizedDescription
+    }
+
     private var continuation: AsyncStream<KSTEvent>.Continuation?
     /// Access this **before** calling `connect(_:)`. The continuation is
     /// created on first access, so events emitted earlier have nowhere to
@@ -116,6 +138,7 @@ public final class KSTConnection: @unchecked Sendable {
             self.drainScheduled = false
             self.nextCommandAllowed = .distantPast
             self.pendingRoomChoice = nil
+            self.waitingSince = nil
             self.responding = false
             self.phase = .connecting
 
@@ -134,13 +157,21 @@ public final class KSTConnection: @unchecked Sendable {
                 guard let self else { return }
                 switch state {
                 case .ready:
+                    self.waitingSince = nil
                     self.emit(.status("Connected to \(self.host):\(self.port) — waiting for login prompt"))
                     self.queue.async { self.phase = .awaitingLogin }
                     self.receiveLoop()
                 case .waiting(let error):
-                    self.emit(.status("Waiting: \(error.localizedDescription)"))
+                    // NWConnection retries a `.waiting` state on its own,
+                    // indefinitely. That is right for a blip and wrong for
+                    // a server that is refusing us, so it is bounded: the
+                    // operator gets a plain description and, after a
+                    // minute of no progress, a stop rather than an amber
+                    // status that never resolves.
+                    self.emit(.status(Self.describe(error) + " — retrying"))
+                    self.startWaitTimeout()
                 case .failed(let error):
-                    self.finish(reason: error.localizedDescription)
+                    self.finish(reason: Self.describe(error))
                 case .cancelled:
                     self.finish(reason: nil)
                 default:
@@ -328,6 +359,19 @@ public final class KSTConnection: @unchecked Sendable {
     }
 
     // MARK: - Receiving
+
+    private func startWaitTimeout() {
+        guard waitingSince == nil else { return }
+        waitingSince = Date()
+        queue.asyncAfter(deadline: .now() + Self.waitLimit) { [weak self] in
+            guard let self, let since = self.waitingSince,
+                  Date().timeIntervalSince(since) >= Self.waitLimit,
+                  self.phase == .connecting else { return }
+            self.finish(reason: "Gave up after \(Int(Self.waitLimit))s — the server kept refusing. "
+                              + "ON4KST limits how many sessions one callsign may hold; "
+                              + "close a pane or wait a moment, then Connect again.")
+        }
+    }
 
     private func receiveLoop() {
         connection?.receive(minimumIncompleteLength: 1, maximumLength: 16 * 1024) { [weak self] data, _, isComplete, error in

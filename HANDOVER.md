@@ -807,6 +807,29 @@ The pins are display order only. The menu digits and `/CHAT` tokens are
 untouched, so nothing about the protocol depends on how the list is
 arranged.
 
+**2026-08-28, thirty-third pass — `NWError error 61`.** A pane sat amber
+showing `Waiting: The operation couldn't be completed. (Network.NWError
+error 61 - Connection refused)`. Error 61 is POSIX `ECONNREFUSED` on
+macOS: the ON4KST server actively rejected the TCP connection. It was
+transient — `nc -vz www.on4kst.info 23000` succeeded minutes later — and
+the likely cause is session limits, since the app had been restarted many
+times that day and three panes were open at once.
+
+Two things were wrong with how it was handled, both now fixed:
+
+- **The message was a raw `NWError` description**, which tells an operator
+  nothing. `describe(_:)` maps the ones seen in practice —
+  `ECONNREFUSED`, `ETIMEDOUT`, unreachable, DNS — to plain words.
+- **`.waiting` retried forever.** `NWConnection` retries a `.waiting`
+  state on its own, indefinitely, which is right for a blip and wrong for
+  a server that is refusing us — it left a permanent amber status and kept
+  knocking. It is bounded to 60s now, after which the connection stops
+  with an explanation that names the likely cause.
+
+Worth noting the relay was unaffected throughout — 285 spots forwarded —
+because it holds its own listener rather than depending on any chat
+session.
+
 ## Open items
 
 **Ready to build**
