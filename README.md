@@ -47,10 +47,17 @@ table with distance and beam heading from your own square.
 
 ## Install
 
-Requires macOS 13 or later. Universal — Apple Silicon and Intel.
+**[Download the latest release](https://github.com/vu2cpl/kst2mac/releases/latest)**,
+unzip, and drag `KST2Mac.app` to Applications.
 
-Releases are signed with a Developer ID and notarised by Apple, so the
-app opens normally with no right-click-Open dance.
+Requires macOS 13 or later. Universal — Apple Silicon and Intel. Signed
+with a Developer ID and notarised by Apple, so it opens normally with no
+right-click-Open dance.
+
+You need an ON4KST account (register at [on4kst.info](https://www.on4kst.info/)).
+**Use a password you use nowhere else** — the chat runs on plain TCP with
+no TLS, so it crosses the network in clear. That is a property of the
+service, not of this client.
 
 ## Build and run
 

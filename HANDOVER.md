@@ -889,9 +889,15 @@ session.
      too — the name is a play on KST2Me's and the highlight conventions
      come from its manual.
 
-   No GitHub release was cut, so the notarised zip exists only in
-   `build/`. If people should be able to download the app rather than
-   build it, that is the missing step.
+   **v1.0.0 released 2026-08-30** with the notarised zip attached, and
+   verified by downloading it anonymously and confirming `spctl` reports
+   `source=Notarized Developer ID` on the downloaded copy — the only test
+   that actually matters, since it is what a stranger's Mac does.
+
+   For the next release: bump `CFBundleShortVersionString` in
+   `Sources/KST2MacApp/Info.plist`, run `./notarize.sh`, then
+   `git tag -a vX.Y.Z` and `gh release create`. The vu2cpl.com card
+   points at `releases/latest`, so it needs no edit per release.
 7. **Map view** — explicitly out of scope at v0.1 and still is.
 
 ## Gotchas
