@@ -898,7 +898,9 @@ session.
    `Sources/KST2MacApp/Info.plist`, run `./notarize.sh`, then
    `git tag -a vX.Y.Z` and `gh release create`. The vu2cpl.com card
    points at `releases/latest`, so it needs no edit per release.
-7. **Map view** — explicitly out of scope at v0.1 and still is.
+7. **Map view** — out of scope when the scope was set, and still is.
+   Reconsider only if an operator asks for it; the station list already
+   carries QRB/QTF, which is what a map would mostly be showing.
 
 ## Gotchas
 

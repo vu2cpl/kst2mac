@@ -43,7 +43,7 @@ table with distance and beam heading from your own square.
 | Chat message parser | done — verified against captured EU traffic (`HHMMZ CALL Name> …`) |
 | Away / present status | done — the roster brackets away operators |
 | HTML-escaped names | done — `Heinz 2 &amp; 4m` → `Heinz 2 & 4m` |
-| Map view | not planned for v0.1 |
+| Map view | not planned |
 
 ## Install
 
