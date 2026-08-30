@@ -1,7 +1,8 @@
 # KST2Mac — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-28 · **Type:** generic (SwiftPM macOS app) · **Status:** v0.3 — login, roster and message parsing all verified against live traffic
+**Created:** 2026-08-28 · **Last updated:** 2026-08-29 · **Type:** generic (SwiftPM macOS app)
+**Status:** in daily use. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
 
 ---
 
@@ -29,11 +30,17 @@ highlighting, composer with `/CQ` directed messages, station table with
 distance + bearing from the operator's locator, password in Keychain,
 room + host + port in Settings.
 
-**Verified against live traffic:** login handshake, chat menu, roster
-(`/SHow USer`), command set, message lines, the command prompt, away
-status, HTML-escaped names. `docs/PROTOCOL.md` marks what is captured
-versus inferred — keep that distinction honest, it has caught real bugs
-four times now.
+**Verified against live traffic:** login handshake, chat menu, station
+list (`/SHow USer`), command set, message lines, the command prompt, away
+status, HTML-escaped names, the ~1-command-per-minute rate limit, both DX
+spot formats, and that settings are per chat rather than per account.
+`docs/PROTOCOL.md` marks what is captured versus inferred — keep that
+distinction honest, it has caught real bugs repeatedly.
+
+**Working:** multi-room panes that float into their own windows, station
+list with QRB/QTF from the operator's grid, KST2Me's highlight
+conventions, per-event sounds, mention notifications, DX spot pane, and a
+DX-cluster relay on port 7373 feeding dxca on the Pi.
 
 ## Architecture notes worth keeping
 
