@@ -2,7 +2,7 @@
 *For continuation in a new Claude session*
 
 **Created:** 2026-08-28 · **Last updated:** 2026-08-29 · **Type:** generic (SwiftPM macOS app)
-**Status:** in daily use. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
+**Status:** v1.0.0, notarised and public. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
 
 ---
 
@@ -864,8 +864,13 @@ session.
 
 **Deferred**
 
-6. **Notarisation and publishing.** Three things need doing beyond
-   copying `notarize.sh` from the sibling apps:
+6. ~~Notarisation~~ — done 2026-08-30, v1.0.0. `./notarize.sh` builds
+   universal, signs with Developer ID + hardened runtime, submits,
+   staples and re-zips. It reuses the existing `skimserver-notary`
+   Keychain profile, so no new credentials were needed; override with
+   `NOTARY_PROFILE=…`. Gatekeeper reports
+   `source=Notarized Developer ID`. Kept for reference, since these are
+   the parts that bite:
 
    - **Universal binary.** `build_app.sh` runs a plain `swift build -c
      release`, so the app is arm64-only and will not launch on an Intel
@@ -879,10 +884,14 @@ session.
      `com.apple.security.network.client`; that is enough. If the app is
      ever sandboxed, the spot relay listens on a socket and would then
      also need `com.apple.security.network.server`.
-   - **Publishing.** The repo is private and stays private until
-     explicitly told otherwise. The OZ2M credit is already in the README
-     and belongs on any vu2cpl.com card too — the name is a play on
-     KST2Me's and the highlight conventions come from its manual.
+   - **Publishing.** Repo made public 2026-08-30 on explicit instruction.
+     The OZ2M credit is in the README and belongs on the vu2cpl.com card
+     too — the name is a play on KST2Me's and the highlight conventions
+     come from its manual.
+
+   No GitHub release was cut, so the notarised zip exists only in
+   `build/`. If people should be able to download the app rather than
+   build it, that is the missing step.
 7. **Map view** — explicitly out of scope at v0.1 and still is.
 
 ## Gotchas

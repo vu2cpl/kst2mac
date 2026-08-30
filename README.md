@@ -14,7 +14,7 @@ KST2Me manual so that operators who know one can read the other.
 
 ## Status
 
-**v0.3 — working chat client.** Connects, logs in, joins a room, shows the
+**v1.0.0 — in daily use.** Connects, logs in, joins a room, shows the
 traffic, sends messages and `/CQ` directed messages, and builds a station
 table with distance and beam heading from your own square.
 
@@ -45,6 +45,13 @@ table with distance and beam heading from your own square.
 | HTML-escaped names | done — `Heinz 2 &amp; 4m` → `Heinz 2 & 4m` |
 | Map view | not planned for v0.1 |
 
+## Install
+
+Requires macOS 13 or later. Universal — Apple Silicon and Intel.
+
+Releases are signed with a Developer ID and notarised by Apple, so the
+app opens normally with no right-click-Open dance.
+
 ## Build and run
 
 ```bash
@@ -57,7 +64,15 @@ For a drag-to-Applications bundle:
 ./build_app.sh
 ```
 
-Then `cp -R "build/KST2Mac.app" /Applications/`.
+Then `cp -R "build/KST2Mac.app" /Applications/`. That build is ad-hoc
+signed and arm64-only — fine locally, fast to iterate on.
+
+For a distributable build — universal, Developer ID signed, hardened
+runtime, notarised and stapled:
+
+```bash
+./notarize.sh
+```
 
 Tests:
 
