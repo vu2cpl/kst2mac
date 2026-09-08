@@ -19,7 +19,7 @@ his too, and are not bundled: point Settings ▸ Sounds at them by copying
 
 ## Status
 
-**v1.0.0 — in daily use.** Connects, logs in, joins a room, shows the
+**v1.1.0 — in daily use.** Connects, logs in, joins a room, shows the
 traffic, sends messages and `/CQ` directed messages, and builds a station
 table with distance and beam heading from your own square.
 

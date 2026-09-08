@@ -964,6 +964,9 @@ sections were both called `## Layout`. The source-tree one is now
      too — the name is a play on KST2Me's and the highlight conventions
      come from its manual.
 
+   **v1.1.0 released 2026-09-08** — spot/name filtering seeded from
+   KST2Me's lists. Same chain, same notary profile.
+
    **v1.0.0 released 2026-08-30** with the notarised zip attached, and
    verified by downloading it anonymously and confirming `spctl` reports
    `source=Notarized Developer ID` on the downloaded copy — the only test
