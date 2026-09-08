@@ -14,6 +14,7 @@ struct SettingsView: View {
 
     @StateObject private var relay = SpotRelayHost.shared
     @StateObject private var order = RoomOrder.shared
+    @StateObject private var blocklist = BlocklistStore.shared
 
     @State private var newPassword = ""
     @State private var note: String?
@@ -136,6 +137,57 @@ struct SettingsView: View {
                 Text("In dxca add:  [[cluster_nodes]] name = \"KST2Mac\", host = \"127.0.0.1\", port = \(relay.port), login_call = \"\(callsign.isEmpty ? "YOURCALL" : callsign)\"")
                     .font(.caption.monospaced()).foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section("Filtering") {
+                Toggle("Hide spots from known-bogus spotters", isOn: $blocklist.useSeedSpotters)
+                LabeledContent("Spotter list") {
+                    Text("\(blocklist.activeSpotterCount) callsigns"
+                         + (blocklist.droppedSpots > 0
+                            ? " · \(blocklist.droppedSpots) spot(s) dropped this session"
+                            : ""))
+                        .foregroundStyle(.secondary)
+                }
+
+                Picker("Clean up name field", selection: $blocklist.nameTier) {
+                    ForEach(Blocklist.Tier.allCases) { tier in
+                        Text(tier.title).tag(tier)
+                    }
+                }
+                LabeledContent("Name patterns") {
+                    Text("\(blocklist.activeFragmentCount) of \(blocklist.seedFragmentCount) in use")
+                        .foregroundStyle(.secondary)
+                }
+                Text("Operators park announcements, locators and mode names in the ON4KST name field. These patterns strip that out so the table shows the person's name. \"Everything KST2Me strips\" includes short fragments like \"only\" and \"test\" that can bite into a real name — try it, and drop back a step if a name in the table looks wrong.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                DisclosureGroup("Your own additions") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Extra spotter callsigns, one per line")
+                            .font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $blocklist.extraSpottersText)
+                            .font(.body.monospaced())
+                            .frame(height: 70)
+                            .border(.quaternary)
+
+                        Text("Extra name patterns, one per line — leading and trailing spaces count")
+                            .font(.caption).foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                        TextEditor(text: $blocklist.extraNamesText)
+                            .font(.body.monospaced())
+                            .frame(height: 70)
+                            .border(.quaternary)
+
+                        Text("Yours always apply, whatever the setting above. Lines starting with # are ignored.")
+                            .font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Text("Both lists are seeded from Bo OZ2M's KST2Me — \(blocklist.seedSpotterCount) callsigns and \(blocklist.seedFragmentCount) name patterns he has curated over years of running these rooms.")
+                    .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 

@@ -369,6 +369,69 @@ Open questions the transcript answers:
 4. **Join/leave notices** — their shape, so the roster can age out.
 4. ~~The full `/HELP` command set~~ — captured, see above.
 
+## KST2Me's filter lists — read from the files, semantics inferred
+
+Not protocol, but it belongs under the same rule: what is *known* here is
+the file contents, and what is *inferred* is what KST2Me does with them.
+Nothing below was verified against KST2Me running — it is a 32-bit Windows
+binary and does not run on Apple silicon.
+
+Imported by `tools/import-kst2me-lists.py` into
+`Sources/KSTCore/BlocklistSeed.swift`.
+
+### `BadSpotters.txt` — 70 lines, ASCII, CRLF
+
+Callsigns whose spots KST2Me suppresses.
+
+**Known:** 52 of the 70 entries are exactly 7 characters, and the file
+contains both `EI/GI0U` and `EI/GI0UHV`, and both `LZ1001S` and
+`LZ1001SW`.
+
+**Inferred:** 7 is KST2Me's storage width for the field, and the 7-char
+entries are truncations. `Blocklist.blocks(spotter:)` therefore treats an
+entry of exactly 7 characters as a prefix and anything shorter as exact —
+without that rule three quarters of the list would never match.
+
+### `BadNames.txt` — 782 lines, **ISO-8859-1**, CRLF
+
+**Known, and none of it guessable from the filename:**
+
+- The encoding is ISO-8859-1, not UTF-8. Entries include `©`, `®`, `°`.
+- Entries are **substring patterns, not whole names**. `Lking` is a
+  fragment of "Looking"; `Mobi6`, `M-Xma`, `@Inter` are all partial.
+- **Leading and trailing spaces are significant** — ` ex.YO`, `@ home`,
+  `SM/ `, `on 2`.
+- The file is sorted **longest first**, and its tail is 1- and 2-character
+  fragments: `CA`, `G0`, `DX`, `CW`, `:`, `^`.
+
+**Inferred:** the sort order implies longest-match-first application, and
+the intent is to *strip* fragments from the name field rather than reject
+the name — otherwise the one- and two-character entries would blank out
+almost every name in the room. `Blocklist.scrub(name:)` implements that:
+longest first, case-insensitive substring removal, whitespace collapsed
+afterwards, nil if nothing survives.
+
+**Measured, not inferred.** Run over a real 91-row `/SHow USer` capture:
+
+| Tier | Fragments | Names changed |
+|---|---|---|
+| 6+ characters (default) | 280 | 1 — `KST4Contest1263` → `KST4 1263`, correctly |
+| all | 741 | several wrong: `TESTING` → `ING`, `SM5DWF` → `DWF` |
+
+That measurement is why the default stops at six characters and why
+entries under three characters are dropped at import. `BlocklistRealNamesTests`
+pins both halves of it.
+
+### `Spam.txt` — 32 lines, `CALLSIGN;SUBSTRING`
+
+Per-caller message suppression. **Not imported** — it needs message-level
+filtering the app does not have, and at 32 entries (last touched 2013) it
+is the least valuable of the three.
+
+### `valid70mhzdxccs.txt` — 93 lines
+
+4 m prefixes. Not imported: no 70 MHz operation from VU.
+
 ## Prior art
 
 - **KST2Me** — the long-standing Windows client.

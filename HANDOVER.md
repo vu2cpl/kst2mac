@@ -22,7 +22,7 @@ shack credit rule.
 
 ## Current state
 
-`swift build` and `swift test` are clean (15 tests). `./build_app.sh`
+`swift build` and `swift test` are clean (110 tests). `./build_app.sh`
 produces `build/KST2Mac.app`, verified to launch and render.
 
 **Working:** connect / login / join a room, live chat pane with own-call
@@ -40,7 +40,8 @@ distinction honest, it has caught real bugs repeatedly.
 **Working:** multi-room panes that float into their own windows, station
 list with QRB/QTF from the operator's grid, KST2Me's highlight
 conventions, per-event sounds, mention notifications, DX spot pane, and a
-DX-cluster relay on port 7373 feeding dxca on the Pi.
+DX-cluster relay on port 7373 feeding dxca on the Pi, and spot/name
+filtering seeded from KST2Me's own curated lists.
 
 ## Architecture notes worth keeping
 
@@ -837,6 +838,70 @@ Worth noting the relay was unaffected throughout — 285 spots forwarded —
 because it holds its own listener rather than depending on any chat
 session.
 
+**2026-09-08 — KST2Me's filter lists, imported.** A copy of Bo OZ2M's
+KST2Me distribution turned up in iCloud. Three things in it were worth
+having; two are now in the app.
+
+- **The alert sounds.** `cq.wav`, `preamble.wav` and `watch.wav` are the
+  originals behind the `/CQ` / preamble / watch convention this app
+  already borrows. `Sounds.available` reads `~/Library/Sounds` at runtime,
+  so they needed no code at all — copied there, they appear in the picker.
+  Deliberately **not** bundled into the repo: they are OZ2M's files, and
+  the README says where to get them instead.
+- **`BadSpotters.txt` and `BadNames.txt`** are now `Blocklist` in KSTCore,
+  with the data generated into `BlocklistSeed.swift` by
+  `tools/import-kst2me-lists.py`.
+- **`Spam.txt` and `valid70mhzdxccs.txt`** were left. The first needs
+  message-level filtering the app has no place for yet; the second is 4 m
+  prefixes and there is no 70 MHz from VU.
+
+**`BadNames.txt` is not what its name suggests, and this was the whole
+job.** It is not a list of bad names to reject — it is 782 *substring
+patterns* to strip out of the name field, ISO-8859-1 encoded, sorted
+longest-first, with significant leading and trailing spaces (`@ home`,
+`SM/ `) and fragments of words (`Lking` from "Looking"). Its tail is
+one- and two-character strings like `CA`, `G0` and `:`. Applied naively
+it would eat most of the roster. `docs/PROTOCOL.md` now separates what
+the files demonstrably contain from what KST2Me is inferred to do with
+them — the binary is 32-bit x86 and cannot be run here to check.
+
+So the name cleaning is **tiered**, and the tiers were chosen by
+measurement rather than taste. Running both candidate tiers over a real
+91-row `/SHow USer` capture:
+
+- **6+ character fragments (default):** one name changed, correctly —
+  `KST4Contest1263` → `KST4 1263`. Every real name untouched.
+- **All 741:** `TESTING` → `ING`, `SM5DWF` → `DWF`, and a message about
+  trying FSK lost the word "with". Available, clearly labelled, not the
+  default.
+
+`BlocklistRealNamesTests` pins both halves of that against inlined
+captured names, so a future tweak to the threshold cannot quietly start
+eating people's names. The transcript itself stays git-ignored.
+
+Two decisions worth keeping:
+
+- **Blocked spots are dropped before the relay, not just before the
+  table.** The relay's rule is that it never re-encodes a spot, and that
+  still holds — but forwarding a spot we would not show ourselves puts
+  junk into dxca under this login. Filtering is the one thing allowed to
+  stop a spot; everything that survives is still relayed byte-for-byte.
+- **The seed data is generated into Swift, not bundled as a resource.**
+  `build_app.sh` assembles the `.app` by hand and copies only the binary,
+  so `Bundle.module` would be nil in the shipped app and fine in tests —
+  the worst possible failure shape. A generated source file cannot drift
+  that way.
+
+A test caught a real bug during the work: `String.split(separator: "\n")`
+never fires on CRLF text, because Swift treats `\r\n` as a single
+`Character`. The settings box is exactly where someone pastes a list off a
+Windows machine, so `Blocklist.entries` normalises line endings first.
+
+Also fixed in passing: `README.md` had a duplicated block — `## Rooms` and
+`## Chat and commands` appeared twice, verbatim, and two different
+sections were both called `## Layout`. The source-tree one is now
+`## Source layout`. Pre-existing drift, unrelated to this change.
+
 ## Open items
 
 **Ready to build**
@@ -898,7 +963,22 @@ session.
    `Sources/KST2MacApp/Info.plist`, run `./notarize.sh`, then
    `git tag -a vX.Y.Z` and `gh release create`. The vu2cpl.com card
    points at `releases/latest`, so it needs no edit per release.
-7. **Map view** — out of scope when the scope was set, and still is.
+7. **`Spam.txt`** — KST2Me's third list, 32 `CALL;SUBSTRING` pairs that
+   suppress a message when a given caller sends given text. Skipped
+   because it needs message-level filtering the app has no hook for, and
+   because the file was last touched in 2013 and several entries are
+   period pieces (JT65A CQ announcements). Revisit only if the rooms
+   actually turn out to be spammy in use.
+
+8. **The imported lists are frozen at 2021.** `BadSpotters.txt` and
+   `BadNames.txt` carry Dec-2021 dates and there is no feed for them —
+   OZ2M curates them by hand and ships them inside KST2Me. Re-run
+   `tools/import-kst2me-lists.py` against a newer KST2Me if one appears.
+   Until then the operator's own additions in Settings are the way
+   forward, and they are stored separately so an import never clobbers
+   them.
+
+9. **Map view** — out of scope when the scope was set, and still is.
    Reconsider only if an operator asks for it; the station list already
    carries QRB/QTF, which is what a map would mostly be showing.
 

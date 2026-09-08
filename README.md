@@ -10,7 +10,12 @@ original — written from packet captures of the live service, see
 [docs/PROTOCOL.md](docs/PROTOCOL.md) — but the interaction design follows
 OZ2M's, and the highlight conventions it implements (`/CQ`, preamble,
 watches, and their precedence and colours) are taken directly from the
-KST2Me manual so that operators who know one can read the other.
+KST2Me manual so that operators who know one can read the other. The spot
+and name filter lists are OZ2M's own data files, shipped with KST2Me and
+used here with credit — see **Filtering junk** below. The alert sounds are
+his too, and are not bundled: point Settings ▸ Sounds at them by copying
+`cq.wav`, `preamble.wav` and `watch.wav` out of a KST2Me install into
+`~/Library/Sounds`.
 
 ## Status
 
@@ -43,6 +48,7 @@ table with distance and beam heading from your own square.
 | Chat message parser | done — verified against captured EU traffic (`HHMMZ CALL Name> …`) |
 | Away / present status | done — the roster brackets away operators |
 | HTML-escaped names | done — `Heinz 2 &amp; 4m` → `Heinz 2 & 4m` |
+| Spot / name filtering | done — seeded from KST2Me's own lists, tiered, unit-tested |
 | Map view | not planned |
 
 ## Install
@@ -113,28 +119,7 @@ is built around that:
 - `KSTConnection.send(_:)` refuses to write before that point;
 - nothing is ever sent automatically.
 
-## Rooms
-
-Settings ▸ **Rooms** pins the rooms you use to the top of every pane's
-picker, in an order you choose; the rest follow in the server's own order.
-Defaults to Low Band and 50/70 MHz.
-
-## Chat and commands
-
-The message box does both. Plain text goes to the room; text beginning
-`/` is a command to the server — `/SHOW CONFIG`, `/SHOW USER`, `/HELP`,
-`/UNSET DX`. Command replies are private and appear in **Server output**,
-which opens itself when you send one.
-
-Settings are **per chat**, not per account — `/SET` in one room does not
-carry to another. The app handles the one that matters: while the relay is
-on, every room you enter gets `/SET DXCLX` automatically.
-
-Each chat also carries only its own bands' spots, so a Low Band pane will
-never show a 144 MHz spot. Open a pane per room to feed the relay widely;
-spots are deduplicated across panes.
-
-## Layout
+## Source layout
 
 ```
 Sources/KSTCore/       protocol layer — no UI, unit-testable
@@ -144,8 +129,12 @@ Sources/KSTCore/       protocol layer — no UI, unit-testable
   Maidenhead.swift     locator → lat/lon, distance, bearing
   Keychain.swift       password storage
   Models.swift         ChatRoom, KSTLine, Station, KSTEvent
+  Blocklist.swift      spot + name suppression rules
+  BlocklistSeed.swift  generated — KST2Me's curated lists
 Sources/KST2MacApp/     SwiftUI app
 tools/KSTCapture/      transcript recorder for protocol work
+tools/import-kst2me-lists.py
+                       regenerates BlocklistSeed.swift from KST2Me
 docs/PROTOCOL.md       what's verified vs inferred about the protocol
 ```
 
@@ -220,6 +209,43 @@ global.
 The server allows several simultaneous logins on one callsign — three
 windows in three rooms have been run with no session dropped — so no SSID
 suffix is needed.
+
+## Filtering junk
+
+Two kinds of noise arrive with the traffic, and Settings ▸ **Filtering**
+handles both using lists that ship with KST2Me itself — Bo OZ2M's
+curation, built up over years of running these rooms.
+
+**Bogus spotters.** 67 callsigns that produce busted spots. A spot from
+one of them is dropped before it reaches the table *and* before it reaches
+the relay, so nothing junk is forwarded to dxca under your login.
+
+**The name field.** Operators park announcements, locators, antenna
+descriptions and mode names in it, so the station table ends up showing
+`Heinz InnovAntennas` instead of `Heinz`. 741 substring patterns strip
+that back out, in three settings:
+
+| Setting | What it uses | Effect |
+|---|---|---|
+| Off | nothing | names exactly as the server sends them |
+| Longer fragments only (default) | patterns of 6+ characters | over a real 91-station roster capture this changed exactly one name |
+| Everything KST2Me strips | all 741 | thorough, and known to overreach |
+
+The full list's short end is ordinary English — `only`, `with`, `test` —
+which is why it is not the default: on that same capture it turned
+`TESTING` into `ING`. Try it, and drop back a step if a name looks wrong.
+
+Your own additions, under **Your own additions**, always apply whatever
+the setting above. One per line; `#` comments are ignored. For name
+patterns the leading and trailing spaces are part of the pattern, so
+`@ home` and `@home` are different rules.
+
+The lists are baked into the binary rather than read from disk. To refresh
+them from a newer KST2Me:
+
+```bash
+./tools/import-kst2me-lists.py ~/path/to/kst2me
+```
 
 ## Feeding spots to a DX cluster client
 

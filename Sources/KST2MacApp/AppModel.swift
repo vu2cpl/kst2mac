@@ -236,12 +236,21 @@ final class AppModel: ObservableObject {
             status = text
         case .line(let line):
             if case .spot(let canonical) = line.kind {
-                // Verbatim to any connected cluster client. Nothing is
-                // re-encoded — that is the whole point of the relay.
+                let record = SpotParser.parse(canonical)
+                // Dropped before the relay, not merely before the table: a
+                // busted spotter is busted for dxca too, and a spot we
+                // will not show ourselves has no business being forwarded
+                // to the Pi as though we vouched for it. This is the only
+                // thing that stops a spot reaching a client; everything
+                // that survives is still relayed byte-for-byte, which is
+                // the whole point of the relay.
+                if BlocklistStore.shared.current.blocks(spotter: record.spotter) {
+                    BlocklistStore.shared.countDroppedSpot()
+                    return
+                }
                 SpotRelayHost.shared.broadcast(canonical)
                 // Newest first: a spot list is read from the top, and
                 // nobody scrolls a cluster feed to catch up.
-                let record = SpotParser.parse(canonical)
                 if !spots.contains(record) {
                     spots.insert(record, at: 0)
                     if spots.count > maxSpots { spots.removeLast(spots.count - maxSpots) }
@@ -294,6 +303,7 @@ final class AppModel: ObservableObject {
             let known = Dictionary(stations.map { ($0.callsign, $0) },
                                    uniquingKeysWith: { first, _ in first })
             stations = present
+                .map(scrubbed)
                 .map { fresh in
                     guard let old = known[fresh.callsign] else { return fresh }
                     var merged = fresh
@@ -352,9 +362,40 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func append(_ line: KSTLine) { appendToLog(line) }
+    private func append(_ line: KSTLine) { appendToLog(scrubbed(line)) }
+
+    /// The same treatment for the name a chat line carries, applied once
+    /// on arrival rather than in the view — the fragment list is ~750
+    /// entries and a SwiftUI body re-runs far more often than a message
+    /// arrives. `raw` is left alone: the server-output pane must keep
+    /// showing exactly what came off the wire.
+    private func scrubbed(_ line: KSTLine) -> KSTLine {
+        guard case .message(let from, let name, let to, let text) = line.kind,
+              let name,
+              case let cleaned = BlocklistStore.shared.current.scrub(name: name),
+              cleaned != name
+        else { return line }
+        return KSTLine(received: line.received,
+                       raw: line.raw,
+                       kind: .message(from: from, name: cleaned, to: to, text: text),
+                       stamp: line.stamp)
+    }
+
+    /// Applied at the one door every station comes through, so the junk
+    /// never reaches `stations` and the table, the tooltip and the sorted
+    /// order all agree about what a station is called.
+    ///
+    /// The callsign is never touched. A name that scrubs away to nothing
+    /// becomes nil, which the table already renders as callsign-only —
+    /// the same as a station that never set a name.
+    private func scrubbed(_ station: Station) -> Station {
+        var s = station
+        s.name = BlocklistStore.shared.current.scrub(name: s.name)
+        return s
+    }
 
     private func upsert(_ station: Station) {
+        let station = scrubbed(station)
         if let i = stations.firstIndex(where: { $0.callsign == station.callsign }) {
             // Never let a later sighting blank out something we already know.
             stations[i].name    = station.name ?? stations[i].name
