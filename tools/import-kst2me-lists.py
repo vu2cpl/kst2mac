@@ -5,7 +5,13 @@ KST2Me ships BadSpotters.txt and BadNames.txt alongside the .exe. They are
 Bo OZ2M's curation and there is no feed for them — the only way to refresh
 is to unpack a newer KST2Me and re-run this:
 
-    ./tools/import-kst2me-lists.py ~/Downloads/kst2me
+    ./tools/import-kst2me-lists.py \
+        "~/Library/Mobile Documents/com~apple~CloudDocs/Documents/Ham/KST2Me"
+
+That directory is the shack's kept copy of the KST2Me distribution, with a
+WHAT-THIS-IS.txt next to the files explaining what each one is for. It was
+in iCloud Downloads/ until 2026-09-08; do not point this back at a
+Downloads folder, they get tidied away.
 
 Two things about the source files are not guessable and are why this script
 exists rather than a one-line shell pipeline: BadNames.txt is ISO-8859-1,

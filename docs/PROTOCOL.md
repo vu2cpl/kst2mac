@@ -377,7 +377,9 @@ Nothing below was verified against KST2Me running — it is a 32-bit Windows
 binary and does not run on Apple silicon.
 
 Imported by `tools/import-kst2me-lists.py` into
-`Sources/KSTCore/BlocklistSeed.swift`.
+`Sources/KSTCore/BlocklistSeed.swift`. The source distribution is kept at
+`~/Library/Mobile Documents/com~apple~CloudDocs/Documents/Ham/KST2Me`
+— the files below are not in this repo, they are OZ2M's to distribute.
 
 ### `BadSpotters.txt` — 70 lines, ASCII, CRLF
 

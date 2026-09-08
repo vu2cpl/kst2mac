@@ -1002,6 +1002,14 @@ sections were both called `## Layout`. The source-tree one is now
 - **The login banner echoes your public IP back at you**, so a transcript
   identifies the machine that recorded it. One more reason not to publish
   one.
+- **The KST2Me distribution lives at
+  `~/Library/Mobile Documents/com~apple~CloudDocs/Documents/Ham/KST2Me`.**
+  `tools/import-kst2me-lists.py` reads `BadSpotters.txt` and
+  `BadNames.txt` from there, and the three alert `.wav`s are copied from
+  there to `~/Library/Sounds` by hand. None of it is in this repo — the
+  files are OZ2M's. It sat in iCloud `Downloads/` until 2026-09-08, which
+  is how it nearly got tidied away; there is a `WHAT-THIS-IS.txt` beside
+  the files now saying what each is for.
 - **`KSTCapture` transcripts are git-ignored** (`*transcript*.txt`). They
   contain whatever the room said while recording. Read them locally, don't
   commit or publish them.
