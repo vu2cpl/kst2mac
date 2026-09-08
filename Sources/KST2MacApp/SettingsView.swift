@@ -163,27 +163,36 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                DisclosureGroup("Your own additions") {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Extra spotter callsigns, one per line")
-                            .font(.caption).foregroundStyle(.secondary)
-                        TextEditor(text: $blocklist.extraSpottersText)
-                            .font(.body.monospaced())
-                            .frame(height: 70)
-                            .border(.quaternary)
+                // Deliberately not behind a DisclosureGroup. These were,
+                // and the first thing that happened is that they could not
+                // be found — a collapsed triangle in the middle of a long
+                // scrolling Form reads as a heading, not as a control. The
+                // triangle also would not open under an accessibility
+                // press, so it was unreachable to anything driving the app
+                // as well.
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Your own additions")
+                        .font(.headline)
+                        .padding(.top, 4)
+                    Text("Always applied, whatever the settings above. One per line; lines starting with # are ignored.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                        Text("Extra name patterns, one per line — leading and trailing spaces count")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .padding(.top, 4)
-                        TextEditor(text: $blocklist.extraNamesText)
-                            .font(.body.monospaced())
-                            .frame(height: 70)
-                            .border(.quaternary)
+                    Text("Extra spotter callsigns")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                    TextEditor(text: $blocklist.extraSpottersText)
+                        .font(.body.monospaced())
+                        .frame(height: 60)
+                        .border(.quaternary)
 
-                        Text("Yours always apply, whatever the setting above. Lines starting with # are ignored.")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    Text("Extra name patterns — leading and trailing spaces count")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                    TextEditor(text: $blocklist.extraNamesText)
+                        .font(.body.monospaced())
+                        .frame(height: 60)
+                        .border(.quaternary)
                 }
 
                 Text("Both lists are seeded from Bo OZ2M's KST2Me — \(blocklist.seedSpotterCount) callsigns and \(blocklist.seedFragmentCount) name patterns he has curated over years of running these rooms.")

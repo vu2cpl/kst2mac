@@ -897,6 +897,16 @@ never fires on CRLF text, because Swift treats `\r\n` as a single
 `Character`. The settings box is exactly where someone pastes a list off a
 Windows machine, so `Blocklist.entries` normalises line endings first.
 
+**Same day, follow-up — the settings boxes could not be found.** The two
+"Your own additions" editors shipped inside a `DisclosureGroup`, and the
+first question asked about the feature was where they were. A collapsed
+triangle two thirds of the way down a 460×652 scrolling Form reads as a
+heading, not a control. Worse, the triangle would not open under an
+accessibility press either — `AXPress` on it reports success and nothing
+happens — so it was unreachable to anything driving the app as well as
+easy to miss by eye. Both editors are now always visible. If a future
+section needs collapsing, check it opens before shipping it.
+
 Also fixed in passing: `README.md` had a duplicated block — `## Rooms` and
 `## Chat and commands` appeared twice, verbatim, and two different
 sections were both called `## Layout`. The source-tree one is now
