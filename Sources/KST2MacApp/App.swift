@@ -1,6 +1,13 @@
 import SwiftUI
 import KSTCore
 
+/// The per-app part of UpdateChecker.swift (that file is identical in every
+/// VU2CPL app — see its header).
+extension UpdateChecker.Configuration {
+    static let app = UpdateChecker.Configuration(
+        repository: "vu2cpl/kst2mac", appName: "KST2Mac")
+}
+
 @main
 struct KST2MacApp: App {
 
@@ -14,6 +21,9 @@ struct KST2MacApp: App {
         SpotRelayHost.shared.onEnabled = {
             SessionStore.shared.enableSpotsEverywhere()
         }
+        // About 10 s from now: ask GitHub whether a newer release exists
+        // (at most once a day; off via Settings ▸ Updates).
+        UpdateChecker.shared.scheduleAutomaticCheck()
     }
 
     var body: some Scene {
@@ -25,6 +35,9 @@ struct KST2MacApp: App {
         }
         .defaultSize(width: 1200, height: 780)
         .commands {
+            CommandGroup(after: .appInfo) {
+                UpdateChecker.CheckButton()
+            }
             CommandGroup(replacing: .newItem) {
                 NewWindowButton()
             }

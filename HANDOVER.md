@@ -1,8 +1,8 @@
 # KST2Mac — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-28 · **Last updated:** 2026-08-29 · **Type:** generic (SwiftPM macOS app)
-**Status:** v1.0.0, notarised and public. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
+**Created:** 2026-08-28 · **Last updated:** 2026-10-08 · **Type:** generic (SwiftPM macOS app)
+**Status:** v1.1.0, notarised and public; an update check is on `main`, unreleased. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
 
 ---
 
@@ -912,6 +912,38 @@ Also fixed in passing: `README.md` had a duplicated block — `## Rooms` and
 sections were both called `## Layout`. The source-tree one is now
 `## Source layout`. Pre-existing drift, unrelated to this change.
 
+**2026-10-08 — update check against GitHub releases (unreleased — ships
+with the next release).** Manoj's call for all five of his Swift apps: say
+when a newer release is out, with no Sparkle, no appcast and no server of
+our own. `Sources/KST2MacApp/UpdateChecker.swift` is one self-contained
+file kept **byte-identical** across timesync-mac, DXClusterAggregator-macOS,
+kst2mac, macexpert-spe and AmateurRadioSuite — fix it in one, copy the whole
+file to the others. The per-app part is the `UpdateChecker.Configuration.app`
+extension in `App.swift`.
+
+- About 10 s after launch (`KST2MacApp.init`), at most once per 24 h, one
+  anonymous `GET api.github.com/repos/vu2cpl/kst2mac/releases/latest`,
+  10 s timeout, no token. It has nothing to do with the ON4KST connection
+  and sends nothing to the chat.
+- `tag_name` vs `CFBundleShortVersionString` (from
+  `Sources/KST2MacApp/Info.plist`), compared as integer tuples.
+- Newer → dialog with the release notes: **Download** (opens the release
+  page — nothing is downloaded or installed) / **Skip This Version** /
+  **Remind Me Later**. Automatic checks are silent on any failure and for a
+  skipped tag; **KST2Mac ▸ Check for Updates…** (after About) always reports.
+- Settings ▸ **Updates** ▸ "Check for updates automatically", default on.
+  UserDefaults keys `UpdateCheck.automatic` / `.lastCheck` / `.skippedTag`.
+- Test hook, inert unless set: on a build that has the checker (e.g.
+  `./build_app.sh` output), quit KST2Mac, then
+  `open --env UPDATE_CHECK_TEST_CURRENT_VERSION=0.0.1 build/KST2Mac.app` and
+  choose Check for Updates… to see the dialog against the real v1.1.0.
+
+Verified without launching the app (a launch would also start the spot
+relay that dxca connects to, when it is enabled): `swift build`,
+`swift build -c release` and the 110 tests pass with no new warnings; the
+shared file's harness read **v1.1.0** from the live API, passed the
+version-comparison and 24 h-gate cases, and rendered the dialog off-screen.
+
 ## Open items
 
 **Ready to build**
@@ -976,6 +1008,18 @@ sections were both called `## Layout`. The source-tree one is now
    `Sources/KST2MacApp/Info.plist`, run `./notarize.sh`, then
    `git tag -a vX.Y.Z` and `gh release create`. The vu2cpl.com card
    points at `releases/latest`, so it needs no edit per release.
+
+   **Check before the next release** (2026-10-08, not changed here):
+   `notarize.sh` copies the universal binary from `.build/apple/Products/Release`
+   when that directory exists, else `.build/release`. Swift 6.4's SwiftPM no
+   longer writes there — a universal build lands in `.build/out/Products/Release`
+   — but this checkout still has a `.build/apple/Products/Release/KST2Mac` from
+   the v1.1.0 build (2026-09-08). As written, the next `./notarize.sh` would
+   build the new code and then **package that stale v1.1.0 binary** under the
+   new version number, update check and all missing. Clear `.build/apple` or
+   point the script at the new path, and confirm with
+   `strings -a build/KST2Mac.app/Contents/MacOS/KST2Mac | grep releases/latest`
+   before notarising.
 7. **`Spam.txt`** — KST2Me's third list, 32 `CALL;SUBSTRING` pairs that
    suppress a message when a given caller sends given text. Skipped
    because it needs message-level filtering the app has no hook for, and

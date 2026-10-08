@@ -49,6 +49,7 @@ table with distance and beam heading from your own square.
 | Away / present status | done — the roster brackets away operators |
 | HTML-escaped names | done — `Heinz 2 &amp; 4m` → `Heinz 2 & 4m` |
 | Spot / name filtering | done — seeded from KST2Me's own lists, tiered, unit-tested |
+| Update check | done — asks GitHub for the latest release once a day; next release |
 | Map view | not planned |
 
 ## Install
@@ -64,6 +65,21 @@ You need an ON4KST account (register at [on4kst.info](https://www.on4kst.info/))
 **Use a password you use nowhere else** — the chat runs on plain TCP with
 no TLS, so it crosses the network in clear. That is a property of the
 service, not of this client.
+
+### Updates
+
+About 10 seconds after launch, at most once a day, KST2Mac asks GitHub
+whether a newer release exists. If one does, it shows the new version and
+its release notes: **Download** opens the release page in your browser
+(nothing is downloaded or installed automatically), **Skip This Version**
+keeps the automatic check quiet about that release, **Remind Me Later** asks
+again on a later launch. Turn it off with **Settings ▸ Updates ▸ Check for
+updates automatically**; **KST2Mac ▸ Check for Updates…** checks right away.
+The only request is an anonymous
+`GET https://api.github.com/repos/vu2cpl/kst2mac/releases/latest` — no
+account or token, nothing sent beyond the app's name and version in the
+User-Agent, and nothing to do with the ON4KST connection. (In releases
+after v1.1.0.)
 
 ## Build and run
 
@@ -132,6 +148,7 @@ Sources/KSTCore/       protocol layer — no UI, unit-testable
   Blocklist.swift      spot + name suppression rules
   BlocklistSeed.swift  generated — KST2Me's curated lists
 Sources/KST2MacApp/     SwiftUI app
+  UpdateChecker.swift   GitHub release check — identical in all VU2CPL apps
 tools/KSTCapture/      transcript recorder for protocol work
 tools/import-kst2me-lists.py
                        regenerates BlocklistSeed.swift from KST2Me
