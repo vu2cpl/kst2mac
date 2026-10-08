@@ -1,7 +1,7 @@
 # KST2Mac — Project Handover
 *For continuation in a new Claude session*
 
-**Created:** 2026-08-28 · **Last updated:** 2026-10-08 · **Type:** generic (SwiftPM macOS app)
+**Created:** 2026-08-28 · **Last updated:** 2026-10-09 · **Type:** generic (SwiftPM macOS app)
 **Status:** v1.1.0, notarised and public; an update check is on `main`, unreleased. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
 
 ---
@@ -943,6 +943,39 @@ relay that dxca connects to, when it is enabled): `swift build`,
 `swift build -c release` and the 110 tests pass with no new warnings; the
 shared file's harness read **v1.1.0** from the live API, passed the
 version-comparison and 24 h-gate cases, and rendered the dialog off-screen.
+
+**2026-10-09 — update check: Manoj's three follow-up decisions (unreleased
+— ships with the next release).** Changed once in the shared
+`UpdateChecker.swift` and copied whole to all five repos (still
+byte-identical).
+
+1. **Only a successful check stores `UpdateCheck.lastCheck`** — success is
+   HTTP 200 whose JSON has a `tag_name`, newer or not. Every failure
+   (offline, timeout, any HTTP error including the 403 rate limit, 404, bad
+   JSON) writes nothing, so the next launch tries again. The 10-08 version
+   also stored the time when GitHub answered with an error, so one
+   rate-limited launch silenced the check for a day. While the app runs, a
+   failed automatic attempt holds automatic attempts off for 1 h (in memory
+   only); a failed manual check touches neither.
+2. **Re-check while running** — KST2Mac stays up for days, so after the
+   launch check (still ~10 s after start) an hourly timer (5 min tolerance,
+   counted from the end of each attempt) runs the automatic check when the
+   setting is on, 24 h have passed since the last success, the 1 h back-off
+   is over and none of the checker's dialogs is open. The decision is the
+   pure `UpdateChecker.shouldCheckAutomatically(...)`.
+3. **Development builds never check on their own** — a version containing
+   "dev" (any case) makes no request at launch or from the timer; Check for
+   Updates… still works. `UPDATE_CHECK_TEST_CURRENT_VERSION` replaces the
+   version as before and is not subject to the rule.
+
+Dialog, Skip / Remind Me Later, toggle and menu item unchanged; the
+Settings ▸ Updates caption now says "once a day while it keeps running".
+Verified without launching the app: `swift build`, `swift build -c release`
+and the 110 tests pass, no warnings in the file; a scratch harness passed
+148 cases (timer decision, success/failure storage per failure kind,
+back-off, response parsing) with GitHub replaced by a stand-in, a fake
+`0.0.0-dev` bundle made no request while a release-version one made exactly
+one, and two live requests passed.
 
 ## Open items
 

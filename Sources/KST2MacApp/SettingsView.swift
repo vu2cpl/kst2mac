@@ -210,7 +210,7 @@ struct SettingsView: View {
 
             Section("Updates") {
                 UpdateChecker.AutomaticToggle()
-                Text("About 10 seconds after launch, at most once a day, KST2Mac asks GitHub whether a newer release exists. Nothing is downloaded or installed — the dialog's Download button opens the release page. KST2Mac ▸ Check for Updates… checks right away.")
+                Text("About 10 seconds after launch, and then once a day while it keeps running, KST2Mac asks GitHub whether a newer release exists. Nothing is downloaded or installed — the dialog's Download button opens the release page. KST2Mac ▸ Check for Updates… checks right away.")
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

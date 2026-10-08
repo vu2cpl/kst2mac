@@ -68,12 +68,16 @@ service, not of this client.
 
 ### Updates
 
-About 10 seconds after launch, at most once a day, KST2Mac asks GitHub
-whether a newer release exists. If one does, it shows the new version and
-its release notes: **Download** opens the release page in your browser
-(nothing is downloaded or installed automatically), **Skip This Version**
-keeps the automatic check quiet about that release, **Remind Me Later** asks
-again on a later launch. Turn it off with **Settings ▸ Updates ▸ Check for
+About 10 seconds after launch, and then once a day for as long as it keeps
+running, KST2Mac asks GitHub whether a newer release exists. If one does, it
+shows the new version and its release notes: **Download** opens the release
+page in your browser (nothing is downloaded or installed automatically),
+**Skip This Version** keeps the automatic check quiet about that release,
+**Remind Me Later** asks again at the next daily check. Only a successful
+check counts towards the day: one that fails (offline, timeout, rate limit,
+any other error) stays silent and is tried again about an hour later, or at
+the next launch. Development builds (a version containing "dev") never check on their
+own. Turn it off with **Settings ▸ Updates ▸ Check for
 updates automatically**; **KST2Mac ▸ Check for Updates…** checks right away.
 The only request is an anonymous
 `GET https://api.github.com/repos/vu2cpl/kst2mac/releases/latest` — no
