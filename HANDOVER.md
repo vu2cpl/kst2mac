@@ -2,7 +2,7 @@
 *For continuation in a new Claude session*
 
 **Created:** 2026-08-28 · **Last updated:** 2026-10-09 · **Type:** generic (SwiftPM macOS app)
-**Status:** v1.1.0, notarised and public; an update check is on `main`, unreleased. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
+**Status:** v1.1.1 (2026-10-09, adds the update check), notarised and public; installed at `/Applications/KST2Mac.app`. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
 
 ---
 
@@ -912,8 +912,8 @@ Also fixed in passing: `README.md` had a duplicated block — `## Rooms` and
 sections were both called `## Layout`. The source-tree one is now
 `## Source layout`. Pre-existing drift, unrelated to this change.
 
-**2026-10-08 — update check against GitHub releases (unreleased — ships
-with the next release).** Manoj's call for all five of his Swift apps: say
+**2026-10-08 — update check against GitHub releases (released in
+v1.1.1).** Manoj's call for all five of his Swift apps: say
 when a newer release is out, with no Sparkle, no appcast and no server of
 our own. `Sources/KST2MacApp/UpdateChecker.swift` is one self-contained
 file kept **byte-identical** across timesync-mac, DXClusterAggregator-macOS,
@@ -944,8 +944,8 @@ relay that dxca connects to, when it is enabled): `swift build`,
 shared file's harness read **v1.1.0** from the live API, passed the
 version-comparison and 24 h-gate cases, and rendered the dialog off-screen.
 
-**2026-10-09 — update check: Manoj's three follow-up decisions (unreleased
-— ships with the next release).** Changed once in the shared
+**2026-10-09 — update check: Manoj's three follow-up decisions (released
+in v1.1.1).** Changed once in the shared
 `UpdateChecker.swift` and copied whole to all five repos (still
 byte-identical).
 
@@ -976,6 +976,35 @@ and the 110 tests pass, no warnings in the file; a scratch harness passed
 back-off, response parsing) with GitHub replaced by a stand-in, a fake
 `0.0.0-dev` bundle made no request while a release-version one made exactly
 one, and two live requests passed.
+
+**2026-10-09 — v1.1.1 released, after fixing `notarize.sh`.** The first
+release with the update check (the two entries above).
+https://github.com/vu2cpl/kst2mac/releases/tag/v1.1.1 — asset
+`KST2Mac-1.1.1.zip`, SHA-256
+`8238ead0c7f88d1144f96b590e135029fe56e85244f7311ef182b501d13b2d3f`,
+universal (`x86_64 arm64`), `minos 13.0`, `sdk 27.0`. Downloaded back,
+unpacked with `ditto -x -k`: `codesign --strict`, `spctl` (Notarized
+Developer ID) and `stapler validate` pass, version 1.1.1, binary identical
+to the build, and `strings` finds the 10-09 update-check text. Installed:
+`/Applications/KST2Mac.app` 1.1.0 moved to the Trash
+(`KST2Mac.app-prev-20261009-052731`) and 1.1.1 put in with `ditto`; it
+was not running, so not launched. `CFBundleVersion` 2 → 3. `swift test`:
+110 pass.
+
+The script fix, before the build: `notarize.sh` copied from
+`.build/apple/Products/Release` whenever that folder existed, and it still
+held the v1.1.0 binary from 2026-09-08 — Swift 6.4 writes universal builds
+to `.build/out/Products/Release`, so this release would have shipped that
+stale binary as 1.1.1. Now the script asks `swift build --show-bin-path`,
+deletes the old product first, and fails loudly on a missing product, a
+missing architecture, the wrong `minos` or recorded SDK, an `@rpath` dylib,
+or a copy in the `.app` that is not byte-identical to the build.
+`--skip-build` is gone (it was the reuse-an-old-build path). Zips are made
+with `ditto --norsrc` and checked for 0 AppleDouble entries;
+`codesign --strict` and `spctl -t exec` are fatal; the SHA-256 is printed.
+Also found: Swift 6.4 records `sdk 13.0` (the deployment target) unless the
+linker is given `-isysroot` — see *Gotchas*. The stale `.build/apple/`
+folder is still there; nothing reads it now.
 
 ## Open items
 
@@ -1037,22 +1066,18 @@ one, and two live requests passed.
    `source=Notarized Developer ID` on the downloaded copy — the only test
    that actually matters, since it is what a stranger's Mac does.
 
-   For the next release: bump `CFBundleShortVersionString` in
-   `Sources/KST2MacApp/Info.plist`, run `./notarize.sh`, then
-   `git tag -a vX.Y.Z` and `gh release create`. The vu2cpl.com card
-   points at `releases/latest`, so it needs no edit per release.
+   **v1.1.1 released 2026-10-09** — the update check. Same chain, same
+   notary profile, after the script fix below.
 
-   **Check before the next release** (2026-10-08, not changed here):
-   `notarize.sh` copies the universal binary from `.build/apple/Products/Release`
-   when that directory exists, else `.build/release`. Swift 6.4's SwiftPM no
-   longer writes there — a universal build lands in `.build/out/Products/Release`
-   — but this checkout still has a `.build/apple/Products/Release/KST2Mac` from
-   the v1.1.0 build (2026-09-08). As written, the next `./notarize.sh` would
-   build the new code and then **package that stale v1.1.0 binary** under the
-   new version number, update check and all missing. Clear `.build/apple` or
-   point the script at the new path, and confirm with
-   `strings -a build/KST2Mac.app/Contents/MacOS/KST2Mac | grep releases/latest`
-   before notarising.
+   For the next release: bump `CFBundleShortVersionString` (and
+   `CFBundleVersion`) in `Sources/KST2MacApp/Info.plist`, run
+   `./notarize.sh`, then `git tag -a vX.Y.Z` and `gh release create`. The
+   vu2cpl.com card points at `releases/latest`, so it needs no edit per
+   release.
+
+   ~~**Check before the next release** (2026-10-08)~~ — **done
+   2026-10-09**: `notarize.sh` no longer guesses the product path or
+   reuses an old build; see *What changed* (2026-10-09, v1.1.1).
 7. **`Spam.txt`** — KST2Me's third list, 32 `CALL;SUBSTRING` pairs that
    suppress a message when a given caller sends given text. Skipped
    because it needs message-level filtering the app has no hook for, and
@@ -1073,6 +1098,19 @@ one, and two live requests passed.
    carries QRB/QTF, which is what a map would mostly be showing.
 
 ## Gotchas
+
+- **Swift 6.4 builds record the wrong SDK version unless told.** swiftbuild
+  (the default build system since Swift 6.4) links through `swiftc -sdk`,
+  which hands clang only `--sysroot`, so `ld` writes the deployment target
+  as the SDK version — `vtool -show-build` shows `sdk 13.0` — and macOS
+  then applies pre-26 linked-on-or-after behaviour. `SDKROOT` and `--sdk`
+  are both ignored. `notarize.sh` passes `-Xswiftc -Xclang-linker -Xswiftc
+  -isysroot -Xswiftc -Xclang-linker -Xswiftc <sdk>` and checks the result;
+  `build_app.sh` and `swift run` builds still record `sdk 13.0`, harmless
+  for local use. Releases up to v1.1.0 recorded `sdk 26.5`.
+- **Universal builds land in `.build/out/Products/Release`** with Swift 6.4
+  (`.build/release` is a symlink to it), not `.build/apple/...`. Ask
+  `swift build -c release --arch arm64 --arch x86_64 --show-bin-path`.
 
 - **No TLS on port 23000.** The password is sent in clear. The README and
   both password UIs say so; keep saying so.
