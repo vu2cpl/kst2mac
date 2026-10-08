@@ -19,7 +19,7 @@ his too, and are not bundled: point Settings ▸ Sounds at them by copying
 
 ## Status
 
-**v1.1.0 — in daily use.** Connects, logs in, joins a room, shows the
+**v1.1.1 — in daily use.** Connects, logs in, joins a room, shows the
 traffic, sends messages and `/CQ` directed messages, and builds a station
 table with distance and beam heading from your own square.
 
@@ -49,7 +49,7 @@ table with distance and beam heading from your own square.
 | Away / present status | done — the roster brackets away operators |
 | HTML-escaped names | done — `Heinz 2 &amp; 4m` → `Heinz 2 & 4m` |
 | Spot / name filtering | done — seeded from KST2Me's own lists, tiered, unit-tested |
-| Update check | done — asks GitHub for the latest release once a day; next release |
+| Update check | done — asks GitHub for the latest release once a day; since v1.1.1 |
 | Map view | not planned |
 
 ## Install
@@ -82,8 +82,8 @@ updates automatically**; **KST2Mac ▸ Check for Updates…** checks right away.
 The only request is an anonymous
 `GET https://api.github.com/repos/vu2cpl/kst2mac/releases/latest` — no
 account or token, nothing sent beyond the app's name and version in the
-User-Agent, and nothing to do with the ON4KST connection. (In releases
-after v1.1.0.)
+User-Agent, and nothing to do with the ON4KST connection. (Since
+v1.1.1.)
 
 ## Build and run
 

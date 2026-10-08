@@ -20,8 +20,14 @@
 #
 # Usage:
 #   ./notarize.sh                  # build + sign + notarize + staple + zip
-#   ./notarize.sh --skip-build     # reuse the last release build
 #   ./notarize.sh --skip-notarize  # sign only; fast iteration on signing
+#
+# Every run builds fresh. There is no --skip-build any more (2026-10-09): the
+# old binary is deleted before the build, the product path is asked of SwiftPM
+# rather than assumed, and the script stops if the fresh binary is missing, not
+# universal, has the wrong deployment target, or is not byte-identical to what
+# went into the .app. A stale v1.1.0 binary in .build/apple/ was one wrong path
+# away from shipping as the next release.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -32,11 +38,10 @@ BIN_NAME="KST2Mac"
 ENTITLEMENTS_FILE="KST2Mac.entitlements"
 NOTARY_PROFILE="${NOTARY_PROFILE:-skimserver-notary}"
 
-SKIP_BUILD=0
 SKIP_NOTARIZE=0
 for arg in "$@"; do
     case "$arg" in
-        --skip-build)    SKIP_BUILD=1 ;;
+        --skip-build)    echo "--skip-build was removed: every release is built fresh"; exit 2 ;;
         --skip-notarize) SKIP_NOTARIZE=1 ;;
         *) echo "unknown option: $arg"; exit 2 ;;
     esac
@@ -66,21 +71,49 @@ echo ">> notary:    $NOTARY_PROFILE"
 
 # --- Build ------------------------------------------------------------------
 
-if [ "$SKIP_BUILD" -eq 0 ]; then
-    # Universal: arm64 for Apple Silicon, x86_64 so it runs on an Intel
-    # Mac at all. build_app.sh omits this deliberately — it costs build
-    # time that fast local iteration should not pay.
-    echo ">> swift build -c release --arch arm64 --arch x86_64"
-    swift build -c release --arch arm64 --arch x86_64
-fi
+fail() { echo "ERROR: $*"; exit 1; }
 
-# Multi-arch output lands under .build/apple/Products/Release; the
-# single-arch path is a symlink to one triple, so never copy from it here.
-if [ -d ".build/apple/Products/Release" ]; then
-    BUILD_OUTPUT_DIR=".build/apple/Products/Release"
-else
-    BUILD_OUTPUT_DIR=".build/release"
+# Universal: arm64 for Apple Silicon, x86_64 so it runs on an Intel Mac at
+# all. build_app.sh omits this deliberately — it costs build time that fast
+# local iteration should not pay.
+#
+# Where the product lands depends on the toolchain — the native build system
+# used .build/apple/Products/Release, Swift 6.4's swiftbuild uses
+# .build/out/Products/Release — so ask SwiftPM, and delete the old product
+# first so that whatever is there afterwards was linked by this run.
+BUILD_ARGS=(-c release --arch arm64 --arch x86_64)
+BUILD_OUTPUT_DIR="$(swift build "${BUILD_ARGS[@]}" --show-bin-path)"
+BUILT_BIN="$BUILD_OUTPUT_DIR/$BIN_NAME"
+rm -f "$BUILT_BIN"
+
+SDK="$(xcrun --sdk macosx --show-sdk-path)"
+SDK_VER="$(xcrun --sdk macosx --show-sdk-version)"
+MIN_OS=$(/usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" \
+    Sources/KST2MacApp/Info.plist)   # 13.0, = Package.swift .macOS(.v13)
+
+echo ">> swift build ${BUILD_ARGS[*]}  (macOS SDK $SDK_VER) -> $BUILD_OUTPUT_DIR"
+# -isysroot for the link step: swiftbuild links through `swiftc -sdk`, which
+# hands clang only --sysroot, so ld records the deployment target as the SDK
+# version (sdk 13.0). macOS keys its linked-on-or-after behaviour on the
+# recorded SDK, so pass the real one and check it below.
+swift build "${BUILD_ARGS[@]}" \
+    -Xswiftc -Xclang-linker -Xswiftc -isysroot -Xswiftc -Xclang-linker -Xswiftc "$SDK"
+
+[ -f "$BUILT_BIN" ] || fail "the build did not produce $BUILT_BIN"
+ARCHS=" $(lipo -archs "$BUILT_BIN") "
+for a in arm64 x86_64; do
+    case "$ARCHS" in *" $a "*) ;; *) fail "$BUILT_BIN lacks $a (has:${ARCHS})" ;; esac
+    BV="$(vtool -arch "$a" -show-build "$BUILT_BIN")"
+    minos="$(awk '$1=="minos"{print $2}' <<<"$BV")"
+    sdk="$(awk '$1=="sdk"{print $2}' <<<"$BV")"
+    [ "$minos" = "$MIN_OS" ] || fail "$a slice has minos $minos, expected $MIN_OS"
+    [ "$sdk" = "$SDK_VER" ] || fail "$a slice records sdk $sdk, expected $SDK_VER"
+done
+if otool -L "$BUILT_BIN" | grep -q '@rpath/'; then
+    otool -L "$BUILT_BIN" | grep '@rpath/'
+    fail "the binary needs @rpath dylibs this bundle does not carry"
 fi
+echo ">> built $(stat -f '%Sm' "$BUILT_BIN"); archs:${ARCHS}minos $MIN_OS, sdk $SDK_VER"
 
 echo ">> assembling $APP_BUNDLE_DIR"
 rm -rf "$APP_BUNDLE_DIR"
@@ -99,7 +132,9 @@ if [ -f "$ICON_SRC" ]; then
     rm -rf "$(dirname "$ICONSET")"
 fi
 
-cp "$BUILD_OUTPUT_DIR/$BIN_NAME" "$APP_BUNDLE_DIR/Contents/MacOS/$BIN_NAME"
+cp "$BUILT_BIN" "$APP_BUNDLE_DIR/Contents/MacOS/$BIN_NAME"
+cmp -s "$BUILT_BIN" "$APP_BUNDLE_DIR/Contents/MacOS/$BIN_NAME" \
+    || fail "the binary in $APP_BUNDLE_DIR is not the one just built"
 cp Sources/KST2MacApp/Info.plist "$APP_BUNDLE_DIR/Contents/Info.plist"
 
 PB="/usr/libexec/PlistBuddy"
@@ -131,9 +166,11 @@ codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE_DIR" 2>&1 | tail -4
 ZIP="build/${APP_NAME}-${VERSION}.zip"
 echo ">> packaging $ZIP"
 rm -f "$ZIP"
-# ditto, not zip: it preserves the bundle's resource forks and symlinks,
-# which a plain zip mangles and the notary then rejects.
-ditto -c -k --keepParent "$APP_BUNDLE_DIR" "$ZIP"
+# ditto, not zip: it preserves the bundle's symlinks, which a plain zip
+# mangles and the notary then rejects. --norsrc: no AppleDouble (._*)
+# sidecars for extended attributes — an unzipper that turns them into real
+# files breaks the signature.
+ditto -c -k --norsrc --keepParent "$APP_BUNDLE_DIR" "$ZIP"
 
 if [ "$SKIP_NOTARIZE" -eq 1 ]; then
     echo ">> --skip-notarize: signed but not submitted"
@@ -153,10 +190,14 @@ xcrun stapler validate "$APP_BUNDLE_DIR"
 # made before stapling does not contain it.
 echo ">> repackaging stapled $ZIP"
 rm -f "$ZIP"
-ditto -c -k --keepParent "$APP_BUNDLE_DIR" "$ZIP"
+ditto -c -k --norsrc --keepParent "$APP_BUNDLE_DIR" "$ZIP"
+SIDECARS="$(zipinfo -1 "$ZIP" | grep -c -E '(^|/)(\._|__MACOSX)' || true)"
+[ "$SIDECARS" = "0" ] || fail "$ZIP contains $SIDECARS AppleDouble entries"
 
 echo ">> Gatekeeper assessment"
-spctl -a -vvv -t install "$APP_BUNDLE_DIR" 2>&1 | tail -3
+codesign --verify --deep --strict "$APP_BUNDLE_DIR"
+spctl -a -vvv -t exec "$APP_BUNDLE_DIR"
+shasum -a 256 "$ZIP"
 
 cat <<MSG
 
