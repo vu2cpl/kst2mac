@@ -1046,7 +1046,9 @@ Installed: KST2Mac 1.1.1 was running, so it was quit cleanly (AppleScript
 `quit`, which logs out of the chat), `/Applications/KST2Mac.app` moved to
 the Trash (`KST2Mac.app-prev-20261009-055713`), 1.1.2 put in with `ditto`
 from the downloaded zip and relaunched with `open`. KST2Mac does not
-auto-connect, so it waits for Connect. `CFBundleVersion` 3 → 4.
+auto-connect, so it waited for Connect. `CFBundleVersion` 3 → 4. Manoj
+tested the installed 1.1.2 the same morning ("mac expert, kst2mac,
+jtdx vu, mshv all tested").
 
 ## Open items
 
