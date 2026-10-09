@@ -1030,6 +1030,24 @@ a text field in this app keeps typing and Return; Return / Space / Esc in
 the panel; a click on Download opens the intercepted URL; manual panel key
 with no default button).
 
+**2026-10-09 — v1.1.2 released and installed** (the entry above, as a
+patch release on Manoj's call: "Fix now + patch-release KST2Mac"; the
+other apps get the fix with their next release).
+https://github.com/vu2cpl/kst2mac/releases/tag/v1.1.2 — tag on `619a633`,
+asset `KST2Mac-1.1.2.zip` (1,248,040 bytes), SHA-256
+`fe96614e2782ce6ef627a98cfc4b85fb380a1d5f2559c098bdc40a6221e7bffb`.
+`notarize.sh` unchanged since v1.1.1: fresh universal build, `minos 13.0`,
+`sdk 27.0`, notarisation Accepted (submission `c777cbba-7aeb-41c6-a86c-63f5e0958cd2`),
+stapled, 0 AppleDouble entries. Downloaded back, unpacked with
+`ditto -x -k`: `codesign --strict`, `spctl` (Notarized Developer ID) and
+`stapler validate` pass, version 1.1.2 (build 4), binary identical to the
+build and carrying the `UpdateWindow` code. `swift test`: 110 pass.
+Installed: KST2Mac 1.1.1 was running, so it was quit cleanly (AppleScript
+`quit`, which logs out of the chat), `/Applications/KST2Mac.app` moved to
+the Trash (`KST2Mac.app-prev-20261009-055713`), 1.1.2 put in with `ditto`
+from the downloaded zip and relaunched with `open`. KST2Mac does not
+auto-connect, so it waits for Connect. `CFBundleVersion` 3 → 4.
+
 ## Open items
 
 **Ready to build**
