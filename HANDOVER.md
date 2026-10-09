@@ -2,7 +2,7 @@
 *For continuation in a new Claude session*
 
 **Created:** 2026-08-28 · **Last updated:** 2026-10-09 · **Type:** generic (SwiftPM macOS app)
-**Status:** v1.1.1 (2026-10-09, adds the update check), notarised and public; installed at `/Applications/KST2Mac.app`. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
+**Status:** v1.1.2 (2026-10-09, the update dialog no longer takes focus; v1.1.1 the same morning added the update check), notarised and public; installed at `/Applications/KST2Mac.app`. Chat, station list, DX spots and a cluster relay feeding dxca — all verified against live traffic, not documentation.
 
 ---
 
@@ -1007,7 +1007,7 @@ linker is given `-isysroot` — see *Gotchas*. The stale `.build/apple/`
 folder is still there; nothing reads it now.
 
 **2026-10-09 — update dialog: no focus, no default button for the
-automatic check (unreleased — ships with the next release).** Manoj's
+automatic check (released in v1.1.2).** Manoj's
 rule, as already applied to MSHV, and the reason for it is this app: an
 automatic check (launch or hourly timer) put up an app-modal `NSAlert`
 brought forward with `NSApp.activate()`, so it became the key window
@@ -1020,8 +1020,9 @@ Updates… activated and key. No default button either way (Return does
 nothing, Download needs a click), Esc / close box = Remind Me Later, the
 release notes hold the keyboard when it is key, and the panel ends its
 responder chain for `performClick:` — AppKit sends that on Space, and past
-a panel it reached the main window and "clicked" the chat text field,
-firing its action (which here would send the line). Up-to-date / failure
+a panel it reached the main window and "clicked" a text field there,
+firing its action. Shown in the harness with a plain `NSTextField`; not
+tested against the composer, whose `.onSubmit(send)` sends the line. Up-to-date / failure
 alerts unchanged (manual only). Verified: `swift build`, `swift build -c
 release` and the 110 tests pass with no warnings in the file; a 41-check
 scratch harness in a real AppKit run loop (another app keeps the keyboard;
@@ -1091,6 +1092,9 @@ with no default button).
 
    **v1.1.1 released 2026-10-09** — the update check. Same chain, same
    notary profile, after the script fix below.
+
+   **v1.1.2 released 2026-10-09** — the update dialog no longer takes
+   focus and has no default button. Same chain, `notarize.sh` unchanged.
 
    For the next release: bump `CFBundleShortVersionString` (and
    `CFBundleVersion`) in `Sources/KST2MacApp/Info.plist`, run

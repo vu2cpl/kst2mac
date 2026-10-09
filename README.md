@@ -19,7 +19,7 @@ his too, and are not bundled: point Settings ▸ Sounds at them by copying
 
 ## Status
 
-**v1.1.1 — in daily use.** Connects, logs in, joins a room, shows the
+**v1.1.2 — in daily use.** Connects, logs in, joins a room, shows the
 traffic, sends messages and `/CQ` directed messages, and builds a station
 table with distance and beam heading from your own square.
 
@@ -85,7 +85,7 @@ account or token, nothing sent beyond the app's name and version in the
 User-Agent, and nothing to do with the ON4KST connection. (Since
 v1.1.1.)
 
-*Unreleased — ships with the next release:* when the update window
+Since v1.1.2, when the update window
 appears on its own (the automatic check) it no longer takes the keyboard
 or brings KST2Mac forward — a chat line you are typing keeps the
 keyboard — and none of its buttons is the default, so Return can never
