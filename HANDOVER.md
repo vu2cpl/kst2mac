@@ -1006,6 +1006,29 @@ Also found: Swift 6.4 records `sdk 13.0` (the deployment target) unless the
 linker is given `-isysroot` — see *Gotchas*. The stale `.build/apple/`
 folder is still there; nothing reads it now.
 
+**2026-10-09 — update dialog: no focus, no default button for the
+automatic check (unreleased — ships with the next release).** Manoj's
+rule, as already applied to MSHV, and the reason for it is this app: an
+automatic check (launch or hourly timer) put up an app-modal `NSAlert`
+brought forward with `NSApp.activate()`, so it became the key window
+while a chat line was being typed, and Return pressed **Download**. The
+shared `UpdateChecker.swift` (still byte-identical in all the Swift apps)
+now shows a non-modal panel: from an automatic check
+`orderFrontRegardless()` — in front, but the app is not activated and the
+panel is not key, so the chat composer keeps the keyboard; from Check for
+Updates… activated and key. No default button either way (Return does
+nothing, Download needs a click), Esc / close box = Remind Me Later, the
+release notes hold the keyboard when it is key, and the panel ends its
+responder chain for `performClick:` — AppKit sends that on Space, and past
+a panel it reached the main window and "clicked" the chat text field,
+firing its action (which here would send the line). Up-to-date / failure
+alerts unchanged (manual only). Verified: `swift build`, `swift build -c
+release` and the 110 tests pass with no warnings in the file; a 41-check
+scratch harness in a real AppKit run loop (another app keeps the keyboard;
+a text field in this app keeps typing and Return; Return / Space / Esc in
+the panel; a click on Download opens the intercepted URL; manual panel key
+with no default button).
+
 ## Open items
 
 **Ready to build**

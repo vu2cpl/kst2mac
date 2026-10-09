@@ -85,6 +85,14 @@ account or token, nothing sent beyond the app's name and version in the
 User-Agent, and nothing to do with the ON4KST connection. (Since
 v1.1.1.)
 
+*Unreleased — ships with the next release:* when the update window
+appears on its own (the automatic check) it no longer takes the keyboard
+or brings KST2Mac forward — a chat line you are typing keeps the
+keyboard — and none of its buttons is the default, so Return can never
+open the browser: **Download** needs a click, Esc is **Remind Me Later**.
+**Check for Updates…** still brings the window forward, also with no
+default button.
+
 ## Build and run
 
 ```bash
